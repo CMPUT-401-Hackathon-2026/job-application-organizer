@@ -16,8 +16,22 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
+from django.template import engines
+
+def frontend_index(_request):
+    # Try to load built index.html via Django template engine
+    try:
+        template = engines['django'].get_template('index.html')
+        return HttpResponse(template.render({}))
+    except Exception:
+        # Fallback message if not built yet
+        return HttpResponse("Frontend build not found. Run 'npm run build' in frontend or 'npm run dev' for development.")
+
 
 urlpatterns = [
+    path('api/auth/', include('auth_app.urls')),
+    path('', frontend_index, name='frontend'),
     path('admin/', admin.site.urls),
     path("api/", include("resumes.urls")), 
 ]

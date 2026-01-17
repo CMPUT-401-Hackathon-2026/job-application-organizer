@@ -31,8 +31,10 @@ SECRET_KEY = 'django-insecure-wto44!z3efso*#nqc#6-w62_mf=16^pp7s($^i95*w0-3e5p4o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Allow all hosts for development; adjust for production as needed
+ALLOWED_HOSTS = ["*"]
 
+AUTH_USER_MODEL = "profiles.User"
 
 # Application definition
 
@@ -45,12 +47,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'resumes',
+    'rest_framework',
+    'auth_app',
+    'profiles',
+    'applications',
 ]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -65,7 +72,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates', (BASE_DIR.parent / 'frontend' / 'dist')],  # serve index.html when built
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -126,8 +133,36 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Include built assets from the frontend when available
+import os
+STATICFILES_DIRS = []
+if os.path.exists(BASE_DIR.parent / 'frontend' / 'dist'):
+    STATICFILES_DIRS.append(BASE_DIR.parent / 'frontend' / 'dist')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ]
+}
+
+# Firebase Configuration
+load_dotenv()
+
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', 'firebase-key.json')
+
