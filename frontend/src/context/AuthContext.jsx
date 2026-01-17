@@ -1,23 +1,7 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
-import {initializeApp} from 'firebase/app';
-import {getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
-import {getAnalytics} from 'firebase/analytics';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyC8di3tW-R3VLD7BDb4veklR-lZTYRevzA",
-  authDomain: "hackaton-b70fc.firebaseapp.com",
-  projectId: "hackaton-b70fc",
-  storageBucket: "hackaton-b70fc.firebasestorage.app",
-  messagingSenderId: "133209721933",
-  appId: "1:133209721933:web:cfa9181426dc0d079fe004",
-  measurementId: "G-X7WLWL8SH4"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
+// Note: analytics not used here
 
 const AuthContext = createContext();
 
