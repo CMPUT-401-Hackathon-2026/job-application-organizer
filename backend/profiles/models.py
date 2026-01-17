@@ -7,6 +7,7 @@ class User(AbstractUser):
     Custom user so authentication is handled properly by Django (hashed passwords).
     """
     email = models.EmailField(unique=True)
+    firebase_uid = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     # Keep default username login (simplest for hackathon)
     USERNAME_FIELD = "username"

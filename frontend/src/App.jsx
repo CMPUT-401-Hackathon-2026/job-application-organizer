@@ -19,12 +19,13 @@ function ProtectedRoute({ children }) {
 }
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <div>
       <h1>Dashboard</h1>
       <p>Welcome, {user?.email}!</p>
+      <button onClick={logout}>Log Out</button>
     </div>
   );
 }

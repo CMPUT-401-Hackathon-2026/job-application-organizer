@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {initializeApp} from 'firebase/app';
+import {getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
+import {getAnalytics} from 'firebase/analytics';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    return onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       try {
         if (firebaseUser) {
@@ -56,12 +56,20 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     });
-
-    return unsubscribe;
   }, []);
 
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      console.log('User signed out');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setError(err.message);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, auth }}>
+    <AuthContext.Provider value={{ user, loading, error, auth, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from profiles.models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from .firebase_config import initialize_firebase, verify_firebase_token
+from django.utils.crypto import get_random_string
 
 initialize_firebase()
 
@@ -67,7 +68,7 @@ class LoginView(APIView):
                 user = User.objects.create_user(
                     email=email,
                     username=username,
-                    password=User.objects.make_random_password()  # Random password for Firebase users
+                    password=get_random_string(20)  # Random password for Firebase users
                 )
 
             return Response(

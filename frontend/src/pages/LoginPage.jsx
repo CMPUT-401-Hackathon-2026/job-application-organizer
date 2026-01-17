@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
@@ -8,8 +8,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { auth } = useAuth();
+  const { auth, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log('User already logged in, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -18,13 +26,18 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+// Don't navigate here - let the useEffect handle it after AuthContext updates
     } catch (err) {
+      console.error('Login failed:', err.code, err.message);
       setError(err.message);
+      setLoading(false);
     }
-
-    setLoading(false);
   };
+
+  // Show loading if auth is still initializing
+  if (authLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div>
