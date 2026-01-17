@@ -35,6 +35,9 @@ export interface Profile {
   experience: Experience[];
   projects: Project[];
   techStack: string[];
+  frameworks: string[];
+  libraries: string[];
+  programmingLanguages: string[];
   links: Link[];
 }
 
