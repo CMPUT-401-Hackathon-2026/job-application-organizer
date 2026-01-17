@@ -11,8 +11,14 @@ export function ProfilePage() {
   const { addToast } = useToastStore();
   const { isAuthenticated, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
-  const [showTechInput, setShowTechInput] = useState(false);
-  const [techInputValue, setTechInputValue] = useState('');
+  // const [showTechInput, setShowTechInput] = useState(false);
+  // const [techInputValue, setTechInputValue] = useState('');
+  const [showFrameworkInput, setShowFrameworkInput] = useState(false);
+  const [frameworkInputValue, setFrameworkInputValue] = useState('');
+  const [showLibraryInput, setShowLibraryInput] = useState(false);
+  const [libraryInputValue, setLibraryInputValue] = useState('');
+  const [showLanguageInput, setShowLanguageInput] = useState(false);
+  const [languageInputValue, setLanguageInputValue] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
@@ -24,9 +30,11 @@ export function ProfilePage() {
     experience: [],
     projects: [],
     techStack: [],
+    frameworks: [],
+    libraries: [],
+    programmingLanguages: [],
     links: [],
   });
-
   useEffect(() => {
     // Only load profile if authenticated, otherwise start with empty form for new account
     if (isAuthenticated) {
@@ -211,33 +219,115 @@ export function ProfilePage() {
     });
   };
 
-  const addTechStackItem = () => {
-    setShowTechInput(true);
+  // const addTechStackItem = () => {
+  //   setShowTechInput(true);
+  // };
+
+  // const handleTechInputSubmit = () => {
+  //   if (techInputValue.trim()) {
+  //     setFormData({
+  //       ...formData,
+  //       techStack: [...formData.techStack, techInputValue.trim()],
+  //     });
+  //     setTechInputValue('');
+  //     setShowTechInput(false);
+  //   }
+  // };
+
+  // const handleTechInputCancel = () => {
+  //   setTechInputValue('');
+  //   setShowTechInput(false);
+  // };
+
+  // const removeTechStackItem = (index: number) => {
+  //   setFormData({
+  //     ...formData,
+  //     techStack: formData.techStack.filter((_, i) => i !== index),
+  //   });
+  // };
+
+  const addFrameworkItem = () => {
+    setShowFrameworkInput(true);
   };
 
-  const handleTechInputSubmit = () => {
-    if (techInputValue.trim()) {
+  const handleFrameworkSubmit = () => {
+    if (frameworkInputValue.trim()) {
       setFormData({
         ...formData,
-        techStack: [...formData.techStack, techInputValue.trim()],
+        frameworks: [...formData.frameworks, frameworkInputValue.trim()],
       });
-      setTechInputValue('');
-      setShowTechInput(false);
+      setFrameworkInputValue('');
+      setShowFrameworkInput(false);
     }
   };
 
-  const handleTechInputCancel = () => {
-    setTechInputValue('');
-    setShowTechInput(false);
+  const handleFrameworkCancel = () => {
+    setFrameworkInputValue('');
+    setShowFrameworkInput(false);
   };
 
-  const removeTechStackItem = (index: number) => {
+  const removeFrameworkItem = (index: number) => {
     setFormData({
       ...formData,
-      techStack: formData.techStack.filter((_, i) => i !== index),
+      frameworks: formData.frameworks.filter((_, i) => i !== index),
     });
   };
 
+  const addLibraryItem = () => {
+    setShowLibraryInput(true);
+  };
+
+  const handleLibrarySubmit = () => {
+    if (libraryInputValue.trim()) {
+      setFormData({
+        ...formData,
+        libraries: [...formData.libraries, libraryInputValue.trim()],
+      });
+      setLibraryInputValue('');
+      setShowLibraryInput(false);
+    }
+  };
+
+  const handleLibraryCancel = () => {
+    setLibraryInputValue('');
+    setShowLibraryInput(false);
+  };
+
+  const removeLibraryItem = (index: number) => {
+    setFormData({
+      ...formData,
+      libraries: formData.libraries.filter((_, i) => i !== index),
+    });
+  };
+
+    const addLanguageItem = () => {
+    setShowLanguageInput(true);
+  };
+
+  const handleLanguageSubmit = () => {
+    if (languageInputValue.trim()) {
+      setFormData({
+        ...formData,
+        programmingLanguages: [...formData.programmingLanguages, languageInputValue.trim()],
+      });
+      setLanguageInputValue('');
+      setShowLanguageInput(false);
+    }
+  };
+
+  const handleLanguageCancel = () => {
+    setLanguageInputValue('');
+    setShowLanguageInput(false);
+  };
+
+  const removeLanguageItem = (index: number) => {
+    setFormData({
+      ...formData,
+      programmingLanguages: formData.programmingLanguages.filter((_, i) => i !== index),
+    });
+  };
+
+  
   const addLink = () => {
     setFormData({
       ...formData,
@@ -525,7 +615,7 @@ export function ProfilePage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-6">
+        {/* <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Tech Stack <span className="text-red-500 text-base">*</span></h2>
             {!showTechInput && (
@@ -580,6 +670,203 @@ export function ProfilePage() {
                 {tech}
                 <button
                   onClick={() => removeTechStackItem(index)}
+                  className="hover:text-red-500"
+                  type="button"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div> */}
+
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Framework <span className="text-red-500 text-base">*</span></h2>
+            {!showFrameworkInput && (
+              <button
+                onClick={addFrameworkItem}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                type="button"
+              >
+                <Plus size={20} />
+              </button>
+            )}
+          </div>
+          {showFrameworkInput && (
+            <div className="mb-4 flex gap-2">
+              <input
+                type="text"
+                value={frameworkInputValue}
+                onChange={(e) => setFrameworkInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleFrameworkSubmit();
+                  } else if (e.key === 'Escape') {
+                    handleFrameworkCancel();
+                  }
+                }}
+                placeholder="Enter framework name"
+                autoFocus
+                className="flex-1 px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                onClick={handleFrameworkSubmit}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+                type="button"
+              >
+                Add
+              </button>
+              <button
+                onClick={handleFrameworkCancel}
+                className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {formData.frameworks.map((framework, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"
+              >
+                {framework}
+                <button
+                  onClick={() => removeFrameworkItem(index)}
+                  className="hover:text-red-500"
+                  type="button"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Library <span className="text-red-500 text-base">*</span></h2>
+            {!showLibraryInput && (
+              <button
+                onClick={addLibraryItem}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                type="button"
+              >
+                <Plus size={20} />
+              </button>
+            )}
+          </div>
+          {showLibraryInput && (
+            <div className="mb-4 flex gap-2">
+              <input
+                type="text"
+                value={libraryInputValue}
+                onChange={(e) => setLibraryInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleFrameworkSubmit();
+                  } else if (e.key === 'Escape') {
+                    handleFrameworkCancel();
+                  }
+                }}
+                placeholder="Enter library name"
+                autoFocus
+                className="flex-1 px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                onClick={handleLibrarySubmit}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+                type="button"
+              >
+                Add
+              </button>
+              <button
+                onClick={handleLibraryCancel}
+                className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {formData.libraries.map((library, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"
+              >
+                {library}
+                <button
+                  onClick={() => removeLibraryItem(index)}
+                  className="hover:text-red-500"
+                  type="button"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Languages <span className="text-red-500 text-base">*</span></h2>
+            {!showLanguageInput && (
+              <button
+                onClick={addLanguageItem}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                type="button"
+              >
+                <Plus size={20} />
+              </button>
+            )}
+          </div>
+          {showLanguageInput && (
+            <div className="mb-4 flex gap-2">
+              <input
+                type="text"
+                value={languageInputValue}
+                onChange={(e) => setLanguageInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleFrameworkSubmit();
+                  } else if (e.key === 'Escape') {
+                    handleFrameworkCancel();
+                  }
+                }}
+                placeholder="Enter language name"
+                autoFocus
+                className="flex-1 px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                onClick={handleLanguageSubmit}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+                type="button"
+              >
+                Add
+              </button>
+              <button
+                onClick={handleLanguageCancel}
+                className="px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {formData.programmingLanguages.map((language, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"
+              >
+                {language}
+                <button
+                  onClick={() => removeLanguageItem(index)}
                   className="hover:text-red-500"
                   type="button"
                 >
