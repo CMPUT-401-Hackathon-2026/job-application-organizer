@@ -2,11 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.contrib.auth import get_user_model, authenticate
+from profiles.models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from .firebase_config import initialize_firebase, verify_firebase_token
 
-User = get_user_model()
 initialize_firebase()
 
 
@@ -55,13 +54,20 @@ class LoginView(APIView):
             # Get or create user
             try:
                 user = User.objects.get(email=email)
-                user.firebase_uid = decoded_token.get('uid')
-                user.save()
             except User.DoesNotExist:
+                # Create user with email as username for Firebase users
+                username = email.split('@')[0]  # Use email prefix as username
+                # Make sure username is unique
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+
                 user = User.objects.create_user(
                     email=email,
-                    username=email,
-                    firebase_uid=decoded_token.get('uid')
+                    username=username,
+                    password=User.objects.make_random_password()  # Random password for Firebase users
                 )
 
             return Response(

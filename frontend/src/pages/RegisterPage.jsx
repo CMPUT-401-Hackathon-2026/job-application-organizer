@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           email,
           password,
+          username,
           first_name: firstName,
           last_name: lastName,
         }),
@@ -59,6 +61,15 @@ export default function RegisterPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Username:</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
         </div>

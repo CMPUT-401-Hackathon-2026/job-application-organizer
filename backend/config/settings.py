@@ -29,6 +29,7 @@ DEBUG = True
 # Allow all hosts for development; adjust for production as needed
 ALLOWED_HOSTS = ["*"]
 
+AUTH_USER_MODEL = "profiles.User"
 
 # Application definition
 
@@ -42,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'auth_app',
+    'profiles',
+    'applications',
 ]
 
 MIDDLEWARE = [
@@ -115,9 +118,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
-# Authentication
-AUTH_USER_MODEL = 'auth_app.CustomUser'
 
 
 # Static files (CSS, JavaScript, Images)
