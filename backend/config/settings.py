@@ -28,6 +28,7 @@ DEBUG = True
 # Allow all hosts for development; adjust for production as needed
 ALLOWED_HOSTS = ["*"]
 
+AUTH_USER_MODEL = "profiles.User"
 
 # Application definition
 
@@ -39,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'JobApplication',
+    "profiles",
 ]
 
 MIDDLEWARE = [
