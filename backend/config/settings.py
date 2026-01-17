@@ -149,11 +149,15 @@ CORS_ALLOWED_ORIGINS = [
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-    ]
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'auth_app.authentication.FirebaseAuthentication',
+    ],
 }
 
 # Firebase Configuration
 load_dotenv()
 
-FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', 'firebase-key.json')
+# Path to Firebase service account credentials JSON file
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', str(BASE_DIR / 'firebase-key.json'))
 
