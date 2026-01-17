@@ -170,5 +170,10 @@ load_dotenv()
 # Path to Firebase service account credentials JSON file
 FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', str(BASE_DIR / 'firebase-key.json'))
 
+# OpenRouter API Configuration (for Resume Generation)
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://openrouter.ai/api/v1')
+MODEL_NAME = os.getenv('MODEL_NAME', 'deepseek/deepseek-r1')
+
 # Re-enable APPEND_SLASH to handle missing trailing slashes
 APPEND_SLASH = True
