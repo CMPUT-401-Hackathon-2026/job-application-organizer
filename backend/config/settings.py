@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-wto44!z3efso*#nqc#6-w62_mf=16^pp7s($^i95*w0-3e5p4o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Allow all hosts for development; adjust for production as needed
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -54,7 +55,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates', (BASE_DIR.parent / 'frontend' / 'dist')],  # serve index.html when built
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -115,6 +116,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Include built assets from the frontend when available
+import os
+STATICFILES_DIRS = []
+if os.path.exists(BASE_DIR.parent / 'frontend' / 'dist'):
+    STATICFILES_DIRS.append(BASE_DIR.parent / 'frontend' / 'dist')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
