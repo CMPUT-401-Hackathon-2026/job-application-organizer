@@ -11,8 +11,8 @@ export function ProfilePage() {
   const { addToast } = useToastStore();
   const { isAuthenticated, setAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
-  // const [showTechInput, setShowTechInput] = useState(false);
-  // const [techInputValue, setTechInputValue] = useState('');
+  const [showTechInput, setShowTechInput] = useState(false);
+  const [techInputValue, setTechInputValue] = useState('');
   const [showFrameworkInput, setShowFrameworkInput] = useState(false);
   const [frameworkInputValue, setFrameworkInputValue] = useState('');
   const [showLibraryInput, setShowLibraryInput] = useState(false);
@@ -48,7 +48,18 @@ export function ProfilePage() {
   const loadProfile = async () => {
     try {
       const data = await profile.get();
-      setFormData(data);
+      // Ensure all fields are present with defaults
+      setFormData({
+        ...data,
+        frameworks: data.frameworks || [],
+        libraries: data.libraries || [],
+        programmingLanguages: data.programmingLanguages || [],
+        techStack: data.techStack || [],
+        education: data.education || [],
+        experience: data.experience || [],
+        projects: data.projects || [],
+        links: data.links || [],
+      });
       setHasLoadedProfile(true);
     } catch {
       addToast('Failed to load profile', 'error');
@@ -83,9 +94,9 @@ export function ProfilePage() {
         return 'All education fields (school, degree, field) are required';
       }
     }
-    if (formData.techStack.length === 0) {
-      return 'At least one technology in tech stack is required';
-    }
+    //if (formData.techStack.length === 0) {
+    //  return 'At least one technology in tech stack is required';
+    //}
     return null;
   };
 
@@ -219,32 +230,32 @@ export function ProfilePage() {
     });
   };
 
-  // const addTechStackItem = () => {
-  //   setShowTechInput(true);
-  // };
+  const addTechStackItem = () => {
+    setShowTechInput(true);
+  };
 
-  // const handleTechInputSubmit = () => {
-  //   if (techInputValue.trim()) {
-  //     setFormData({
-  //       ...formData,
-  //       techStack: [...formData.techStack, techInputValue.trim()],
-  //     });
-  //     setTechInputValue('');
-  //     setShowTechInput(false);
-  //   }
-  // };
+  const handleTechInputSubmit = () => {
+    if (techInputValue.trim()) {
+      setFormData({
+        ...formData,
+        techStack: [...formData.techStack, techInputValue.trim()],
+      });
+      setTechInputValue('');
+      setShowTechInput(false);
+    }
+  };
 
-  // const handleTechInputCancel = () => {
-  //   setTechInputValue('');
-  //   setShowTechInput(false);
-  // };
+  const handleTechInputCancel = () => {
+    setTechInputValue('');
+    setShowTechInput(false);
+  };
 
-  // const removeTechStackItem = (index: number) => {
-  //   setFormData({
-  //     ...formData,
-  //     techStack: formData.techStack.filter((_, i) => i !== index),
-  //   });
-  // };
+  const removeTechStackItem = (index: number) => {
+    setFormData({
+      ...formData,
+      techStack: formData.techStack.filter((_, i) => i !== index),
+    });
+  };
 
   const addFrameworkItem = () => {
     setShowFrameworkInput(true);
@@ -429,7 +440,7 @@ export function ProfilePage() {
             </button>
           </div>
           <div className="space-y-4">
-            {formData.education.map((edu) => (
+            {(formData.education || []).map((edu) => (
               <div key={edu.id} className="p-4 border border-border rounded-md space-y-3">
                 <div className="flex justify-end">
                   <button
@@ -501,7 +512,7 @@ export function ProfilePage() {
             </button>
           </div>
           <div className="space-y-4">
-            {formData.experience.map((exp) => (
+            {(formData.experience || []).map((exp) => (
               <div key={exp.id} className="p-4 border border-border rounded-md space-y-3">
                 <div className="flex justify-end">
                   <button
@@ -568,7 +579,7 @@ export function ProfilePage() {
             </button>
           </div>
           <div className="space-y-4">
-            {formData.projects.map((proj) => (
+            {(formData.projects || []).map((proj) => (
               <div key={proj.id} className="p-4 border border-border rounded-md space-y-3">
                 <div className="flex justify-end">
                   <button
@@ -615,7 +626,7 @@ export function ProfilePage() {
           </div>
         </div>
 
-        {/* <div className="bg-card border border-border rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Tech Stack <span className="text-red-500 text-base">*</span></h2>
             {!showTechInput && (
@@ -662,7 +673,7 @@ export function ProfilePage() {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            {formData.techStack.map((tech, index) => (
+            {(formData.techStack || []).map((tech, index) => (
               <span
                 key={index}
                 className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"
@@ -678,7 +689,7 @@ export function ProfilePage() {
               </span>
             ))}
           </div>
-        </div> */}
+        </div>
 
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
@@ -727,7 +738,7 @@ export function ProfilePage() {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            {formData.frameworks.map((framework, index) => (
+            {(formData.frameworks || []).map((framework, index) => (
               <span
                 key={index}
                 className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"
@@ -793,7 +804,7 @@ export function ProfilePage() {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            {formData.libraries.map((library, index) => (
+            {(formData.libraries || []).map((library, index) => (
               <span
                 key={index}
                 className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"
@@ -859,7 +870,7 @@ export function ProfilePage() {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            {formData.programmingLanguages.map((language, index) => (
+            {(formData.programmingLanguages || []).map((language, index) => (
               <span
                 key={index}
                 className="px-3 py-1 bg-muted rounded-md flex items-center gap-2"

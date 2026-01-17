@@ -31,6 +31,7 @@ def frontend_index(_request):
 
 urlpatterns = [
     path('api/auth/', include('auth_app.urls')),
+    path('api/profile/', include('profiles.urls')),
     path('', frontend_index, name='frontend'),
     path('admin/', admin.site.urls),
     path("api/", include("resumes.urls")), 

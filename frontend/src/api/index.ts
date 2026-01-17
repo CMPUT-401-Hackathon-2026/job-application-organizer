@@ -72,7 +72,7 @@ export const auth = {
 export const profile = {
   get: async (): Promise<Profile> => {
     try {
-      return await apiFetch('/profile');
+      return await apiFetch('/profile/'); // Ensure trailing slash
     } catch {
       // Check localStorage for saved profile
       const savedProfile = localStorage.getItem('user_profile');
@@ -105,7 +105,7 @@ export const profile = {
 
   save: async (data: Profile): Promise<Profile> => {
     try {
-      const saved = await apiFetch<Profile>('/profile', {
+      const saved = await apiFetch<Profile>('/profile/', { // Ensure trailing slash
         method: 'PUT',
         body: JSON.stringify(data),
       });
