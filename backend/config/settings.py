@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,10 +43,14 @@ INSTALLED_APPS = [
     'rest_framework',
     'JobApplication',
     "profiles",
+    'corsheaders',
+    'auth_app',
+    'applications',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -55,6 +60,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {
@@ -132,3 +138,30 @@ if os.path.exists(BASE_DIR.parent / 'frontend' / 'dist'):
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'auth_app.authentication.FirebaseAuthentication',
+    ],
+}
+
+# Firebase Configuration
+load_dotenv()
+
+# Path to Firebase service account credentials JSON file
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', str(BASE_DIR / 'firebase-key.json'))
+
+# Re-enable APPEND_SLASH to handle missing trailing slashes
+APPEND_SLASH = True
