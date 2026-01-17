@@ -3,6 +3,15 @@ from django.utils import timezone
 
 
 class Application(models.Model):
+
+    profile = models.ForeignKey(
+        "profiles.Profile",
+        on_delete=models.CASCADE,
+        related_name="applications",
+        null=True,
+        blank=True
+    )
+
     class Stage(models.TextChoices):
         DRAFT = "draft", "Draft"
         APPLIED = "applied", "Applied"
