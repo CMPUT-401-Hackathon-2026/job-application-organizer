@@ -45,22 +45,29 @@ class LoginView(APIView):
         try:
             serializer = LoginSerializer(data=request.data)
             if serializer.is_valid():
-                email = serializer.validated_data['email']
+                email = serializer.validated_data.get('email')
                 id_token = serializer.validated_data['id_token']
 
-                # Verify Firebase token
+                # Verify Firebase token or Google token via verify_firebase_token
                 decoded_token = verify_firebase_token(id_token)
                 if not decoded_token:
                     return Response(
-                        {'error': 'Invalid Firebase token'},
+                        {'error': 'Invalid token'},
                         status=status.HTTP_401_UNAUTHORIZED
                     )
+
+                # If email not provided in payload, try to extract from decoded token
+                if not email:
+                    email = decoded_token.get('email')
+
+                if not email:
+                    return Response({'error': 'Email missing in token or payload'}, status=status.HTTP_400_BAD_REQUEST)
 
                 # Get or create user
                 try:
                     user = User.objects.get(email=email)
                 except User.DoesNotExist:
-                    # Create user with email as username for Firebase users
+                    # Create user with email as username for token-based users
                     username = email.split('@')[0]  # Use email prefix as username
                     # Make sure username is unique
                     base_username = username
@@ -72,7 +79,7 @@ class LoginView(APIView):
                     user = User.objects.create_user(
                         email=email,
                         username=username,
-                        password=get_random_string(20)  # Random password for Firebase users
+                        password=get_random_string(20)  # Random password for token users
                     )
 
                 return Response(

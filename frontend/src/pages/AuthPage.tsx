@@ -5,7 +5,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
-  GoogleAuthProvider
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { auth as firebaseAuth } from '../firebase'; // Ensure this points to your firebase config
 import { useAuthStore } from '../store/authStore';
@@ -59,28 +59,45 @@ export function AuthPage() {
       if (isLogin) {
         // --- LOGIN LOGIC ---
         const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-        const token = await userCredential.user.getIdToken();
+        const idToken = await userCredential.user.getIdToken();
+
+        // Exchange Firebase ID token with backend to get backend user
+        const res = await fetch('/api/auth/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: userCredential.user.email, id_token: idToken }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Backend login failed');
+        }
+
+        const backendUser = data.user;
+        const token = data.token || idToken;
+        const frontendUser = {
+          id: String(backendUser.id),
+          name: backendUser.username || `${backendUser.first_name || ''} ${backendUser.last_name || ''}`.trim(),
+          email: backendUser.email,
+        };
 
         // Update Store
-        setAuth(userCredential.user, token);
+        setAuth(frontendUser, token);
         addToast('Logged in successfully', 'success');
 
         // Check profile status
-        await handlePostLogin(userCredential.user);
+        await handlePostLogin(frontendUser);
 
       } else {
         // --- REGISTER LOGIC ---
         // 1. Create User in Firebase
         const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-        const token = await userCredential.user.getIdToken();
+        const idToken = await userCredential.user.getIdToken();
 
         // 2. Create User in Django Backend
         const response = await fetch('/api/auth/register/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // Optional: Pass the firebase token if your backend middleware verifies it immediately
-            // 'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             email,
@@ -91,20 +108,26 @@ export function AuthPage() {
           }),
         });
 
+        const data = await response.json();
         if (!response.ok) {
-          const data = await response.json();
-          // Optional: If backend fails, you might want to delete the firebase user here to keep states in sync
           throw new Error(data.error || 'Backend registration failed');
         }
 
+        const backendUser = data.user;
+        const token = idToken;
+        const frontendUser = {
+          id: String(backendUser.id),
+          name: backendUser.username || `${backendUser.first_name || ''} ${backendUser.last_name || ''}`.trim(),
+          email: backendUser.email,
+        };
+
         // 3. Success
-        setAuth(userCredential.user, token);
+        setAuth(frontendUser, token);
         addToast('Account created successfully', 'success');
         navigate('/profile'); // Send new users directly to profile setup
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      // Firebase error codes are often "auth/wrong-password", etc.
       const errorMessage = err.message || 'Authentication failed';
       addToast(errorMessage.replace('Firebase: ', ''), 'error');
     } finally {
@@ -115,14 +138,35 @@ export function AuthPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      // Use Firebase Auth popup for Google sign-in
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(firebaseAuth, provider);
-      const token = await userCredential.user.getIdToken();
+      const idToken = await userCredential.user.getIdToken();
 
-      setAuth(userCredential.user, token);
+      // Exchange Firebase ID token with backend to get backend user
+      const res = await fetch('/api/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userCredential.user.email, id_token: idToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Backend login failed');
+      }
+
+      const backendUser = data.user;
+      const token = data.token || idToken;
+      const frontendUser = {
+        id: String(backendUser.id),
+        name: backendUser.username || `${backendUser.first_name || ''} ${backendUser.last_name || ''}`.trim(),
+        email: backendUser.email,
+      };
+
+      setAuth(frontendUser, token);
       addToast('Logged in with Google', 'success');
-      await handlePostLogin(userCredential.user);
+      await handlePostLogin(frontendUser);
     } catch (err: any) {
+      console.error('Google login error:', err);
       addToast('Failed to login with Google', 'error');
     } finally {
       setLoading(false);
