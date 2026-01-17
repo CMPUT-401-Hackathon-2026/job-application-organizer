@@ -1,37 +1,33 @@
 from rest_framework import serializers
 from .models import Profile, Education, JobExperience, Project
 
-
 class EducationSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source='pk', read_only=True)
-    degree = serializers.CharField(source='gpa', allow_blank=True, required=False)
-    field = serializers.SerializerMethodField()
-    startDate = serializers.DateField(source='start_date')
-    endDate = serializers.DateField(source='end_date', allow_null=True, required=False)
+    # Direct mapping now that model has these fields
+    degree = serializers.CharField(allow_blank=True, required=False)
+    field = serializers.CharField(source='field_of_study', allow_blank=True, required=False)
+
+    startDate = serializers.DateField(source='start_date', format="%Y-%m-%d", input_formats=["%Y-%m-%d", "ISO-8601"], required=False, allow_null=True)
+    endDate = serializers.DateField(source='end_date', format="%Y-%m-%d", input_formats=["%Y-%m-%d", "ISO-8601"], required=False, allow_null=True)
     description = serializers.SerializerMethodField()
 
     class Meta:
         model = Education
         fields = ['id', 'school', 'degree', 'field', 'startDate', 'endDate', 'description']
 
-    def get_field(self, obj):
-        # Return courses as field if available
-        return ', '.join(obj.courses) if obj.courses else ''
-
     def get_description(self, obj):
+        # Combining extras into a description for the frontend
         parts = []
-        if obj.clubs:
-            parts.append(f"Clubs: {', '.join(obj.clubs)}")
-        if obj.awards:
-            parts.append(f"Awards: {', '.join(obj.awards)}")
-        return ' | '.join(parts) if parts else ''
+        if obj.courses: parts.append(f"Courses: {', '.join(obj.courses)}")
+        if obj.awards: parts.append(f"Awards: {', '.join(obj.awards)}")
+        return ' | '.join(parts)
 
 
 class ExperienceSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source='pk', read_only=True)
     position = serializers.CharField(source='title')
-    startDate = serializers.DateField(source='start_date')
-    endDate = serializers.DateField(source='end_date', allow_null=True, required=False)
+    startDate = serializers.DateField(source='start_date', format="%Y-%m-%d", input_formats=["%Y-%m-%d", "ISO-8601"], required=False, allow_null=True)
+    endDate = serializers.DateField(source='end_date', format="%Y-%m-%d", input_formats=["%Y-%m-%d", "ISO-8601"], required=False, allow_null=True)
     description = serializers.SerializerMethodField()
 
     class Meta:
@@ -39,7 +35,6 @@ class ExperienceSerializer(serializers.ModelSerializer):
         fields = ['id', 'company', 'position', 'startDate', 'endDate', 'description']
 
     def get_description(self, obj):
-        # Return description as list of lines
         if obj.description:
             return [line.strip() for line in obj.description.split('\n') if line.strip()]
         return []
@@ -56,46 +51,92 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'technologies', 'url']
 
 
-class ProfileSerializer(serializers.Serializer):
-    """
-    Serializer that matches frontend Profile interface
-    """
+class ProfileSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
-    name = serializers.CharField()
-    email = serializers.EmailField()
-    education = EducationSerializer(many=True, read_only=True, source='profile.educations')
-    experience = ExperienceSerializer(many=True, read_only=True, source='profile.job_experiences')
-    projects = ProjectSerializer(many=True, read_only=True, source='profile.projects')
-    techStack = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    frameworks = serializers.JSONField(source='profile.frameworks', required=False, default=list)
-    libraries = serializers.JSONField(source='profile.libraries', required=False, default=list)
-    programmingLanguages = serializers.JSONField(source='profile.programming_languages', required=False, default=list)
+    name = serializers.SerializerMethodField()  # Compute the name from related User
+    email = serializers.EmailField(source='user.email')
+
+    # Nested serializers for related fields (use related_name sources)
+    education = EducationSerializer(many=True, source='educations', required=False)
+    experience = ExperienceSerializer(many=True, source='job_experiences', required=False)
+    projects = ProjectSerializer(many=True, required=False)
+
+    # Writable fields for tech stack
+    programmingLanguages = serializers.JSONField(source='programming_languages', required=False)
+    # Provide a backwards-compatible field name the frontend expects
+    techStack = serializers.JSONField(source='programming_languages', required=False)
+    frameworks = serializers.JSONField(required=False)
+    libraries = serializers.JSONField(required=False)
+
+    # Frontend expects 'links' — we don't have a model field yet, return empty list by default
     links = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Profile
+        fields = [
+            'id', 'name', 'email', 'education', 'experience', 'projects',
+            'programmingLanguages', 'techStack', 'frameworks', 'libraries', 'links'
+        ]
+
+    def get_name(self, obj):
+        # Access first_name and last_name from the related User instance
+        return f"{obj.user.first_name} {obj.user.last_name}".strip()
+
     def get_links(self, obj):
-        # Return empty list for now, can be extended later
         return []
 
-    def to_representation(self, instance):
-        """
-        instance is a User object
-        """
-        # Ensure profile exists
-        if not hasattr(instance, 'profile'):
-            Profile.objects.create(user=instance)
-            instance.refresh_from_db()
+    def update(self, instance, validated_data):
+        # Update nested fields and tech stack
+        # Note: validated_data will contain keys named for the Profile model (programming_languages, frameworks, ...)
+        education_data = validated_data.pop('educations', [])
+        experience_data = validated_data.pop('job_experiences', [])
+        projects_data = validated_data.pop('projects', [])
 
-        data = {
-            'id': str(instance.pk),
-            'name': instance.get_full_name() or instance.username,
-            'email': instance.email,
-            'education': EducationSerializer(instance.profile.educations.all(), many=True).data,
-            'experience': ExperienceSerializer(instance.profile.job_experiences.all(), many=True).data,
-            'projects': ProjectSerializer(instance.profile.projects.all(), many=True).data,
-            'techStack': instance.profile.programming_languages + instance.profile.frameworks + instance.profile.libraries,
-            'frameworks': instance.profile.frameworks,
-            'libraries': instance.profile.libraries,
-            'programmingLanguages': instance.profile.programming_languages,
-            'links': [],
-        }
-        return data
+        # Update tech stack fields
+        instance.programming_languages = validated_data.get('programming_languages', instance.programming_languages)
+        instance.frameworks = validated_data.get('frameworks', instance.frameworks)
+        instance.libraries = validated_data.get('libraries', instance.libraries)
+        instance.save()
+
+        # Update nested fields
+        for edu in education_data:
+            # edu may include an 'id' key coming from the frontend; map it to the PK if present
+            edu_id = edu.get('id')
+            if edu_id:
+                Education.objects.update_or_create(profile=instance, pk=edu_id, defaults={
+                    'school': edu.get('school', ''),
+                    'degree': edu.get('degree', ''),
+                    'field_of_study': edu.get('field', ''),
+                    'start_date': edu.get('startDate'),
+                    'end_date': edu.get('endDate'),
+                    'courses': edu.get('courses', []),
+                })
+            else:
+                Education.objects.create(profile=instance, school=edu.get('school', ''))
+
+        for exp in experience_data:
+            exp_id = exp.get('id')
+            if exp_id:
+                JobExperience.objects.update_or_create(profile=instance, pk=exp_id, defaults={
+                    'company': exp.get('company', ''),
+                    'title': exp.get('position', ''),
+                    'start_date': exp.get('startDate'),
+                    'end_date': exp.get('endDate'),
+                    'description': '\n'.join(exp.get('description', [])) if isinstance(exp.get('description', []), list) else exp.get('description', ''),
+                })
+            else:
+                JobExperience.objects.create(profile=instance, company=exp.get('company', ''))
+
+        for proj in projects_data:
+            proj_id = proj.get('id')
+            if proj_id:
+                Project.objects.update_or_create(profile=instance, pk=proj_id, defaults={
+                    'title': proj.get('name', ''),
+                    'description': proj.get('description', ''),
+                    'skills': proj.get('technologies', []),
+                    'github_link': proj.get('url', ''),
+                })
+            else:
+                Project.objects.create(profile=instance, title=proj.get('name', ''))
+
+        return instance

@@ -161,3 +161,5 @@ load_dotenv()
 # Path to Firebase service account credentials JSON file
 FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', str(BASE_DIR / 'firebase-key.json'))
 
+# Re-enable APPEND_SLASH to handle missing trailing slashes
+APPEND_SLASH = True
