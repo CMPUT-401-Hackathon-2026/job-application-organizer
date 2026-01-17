@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.http import HttpResponse
 from django.template import engines
 
@@ -30,6 +30,7 @@ def frontend_index(_request):
 
 
 urlpatterns = [
+    path('api/auth/', include('auth_app.urls')),
     path('', frontend_index, name='frontend'),
     path('admin/', admin.site.urls),
 ]
