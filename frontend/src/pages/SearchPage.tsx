@@ -70,11 +70,11 @@ export function SearchPage() {
       const { data: freshApps = [] } = await refetchApplications();
       
       // Check if there's already an application for this job
-      const existingApp = freshApps.find((app) => app.jobId === jobToApply.id);
+      const existingApp = freshApps.find((app) => app.job_id === jobToApply.id);
       
-      if (existingApp && existingApp.status === 'Draft') {
+      if (existingApp && existingApp.stage === 'draft') {
         // Update draft to Applied
-        const updatedApp = await applications.updateStatus(existingApp.id, 'Applied');
+        const updatedApp = await applications.updateStatus(existingApp.id, 'applied');
         addToast('Application submitted successfully', 'success');
         
         // Manually update the query cache to ensure UI updates immediately
@@ -83,14 +83,14 @@ export function SearchPage() {
         });
       } else if (!existingApp) {
         // Create new application with Applied status
-        const newApp = await applications.create(jobToApply.id, 'Applied');
+        const newApp = await applications.create(jobToApply.id, 'applied');
         addToast('Application submitted successfully', 'success');
         
         // Manually update the query cache to ensure UI updates immediately
         queryClient.setQueryData(['applications'], (old: Application[] = []) => {
           return [...old, newApp];
         });
-      } else if (existingApp.status === 'Applied') {
+      } else if (existingApp.stage === 'applied') {
         // Already applied
         addToast('You have already applied for this job', 'info');
         return; // Don't update if already applied
@@ -115,7 +115,7 @@ export function SearchPage() {
     const freshApps = await applications.list();
     
     // Check if application already exists for this job
-    const existingApp = freshApps.find((app) => app.jobId === jobToBuild.id);
+    const existingApp = freshApps.find((app) => app.job_id === jobToBuild.id);
     
     if (existingApp) {
       // Navigate to builder with existing application
@@ -123,7 +123,7 @@ export function SearchPage() {
     } else {
       // Create a draft application (not marked as Applied)
       try {
-        const app = await applications.create(jobToBuild.id, 'Draft');
+        const app = await applications.create(jobToBuild.id, 'draft');
         // Invalidate queries to ensure list is updated when user comes back
         await queryClient.invalidateQueries({ queryKey: ['applications'] });
         navigate(`/builder/${app.id}`);
@@ -134,7 +134,7 @@ export function SearchPage() {
   };
 
   const isApplied = (jobId: string) => {
-    return applicationsList.some((app) => app.jobId === jobId && app.status === 'Applied');
+    return applicationsList.some((app) => app.job_id === jobId && app.stage === 'applied');
   };
 
   const selectedJobForDisplay = selectedJob || jobDetail;
@@ -219,15 +219,15 @@ export function SearchPage() {
                 )}
 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {selectedJobForDisplay.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 bg-muted rounded-md text-sm text-muted-foreground"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                {(selectedJobForDisplay?.tags || []).map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-3 py-1 bg-muted rounded-md text-sm text-muted-foreground"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
               </div>
 
               <div className="border-t border-border pt-6">

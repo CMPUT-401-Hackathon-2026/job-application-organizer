@@ -1,68 +1,80 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-
-/**
- * Get authentication token from localStorage
- */
 function getAuthToken(): string | null {
   return localStorage.getItem('auth_token');
 }
 
-/**
- * Fetch wrapper that automatically includes authentication token
- * Compatible with Django REST Framework token authentication
- */
+type ApiFetchOptions = RequestInit & {
+  responseType?: 'json' | 'text' | 'blob';
+};
+
 export async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiFetchOptions = {}
 ): Promise<T> {
+  const token = getAuthToken();
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+
+  const hasBody = !!options.body;
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
+
+  if (hasBody && !isFormData) {
+    headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+  }
+
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let response: Response;
+
   try {
-    const token = getAuthToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
-
-    // Add Authorization header if token exists (Django REST Framework format)
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
-
-    // Handle 401 Unauthorized - token might be expired
-    if (response.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('user_profile');
-      // Redirect to login if not already there
-      if (!window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth';
-      }
-      throw new Error('Unauthorized - please login again');
-    }
-
-    if (!response.ok) {
-      // Try to parse error message from response
-      let errorMessage = `API error: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.detail || errorData.message || errorData.error) {
-          errorMessage = errorData.detail || errorData.message || errorData.error;
-        }
-      } catch {
-        // If response is not JSON, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.json();
-  } catch (error) {
-    // Fallback to mock data - will be handled by api functions
-    throw error;
+  } catch (err) {
+    console.error('Network failure:', err);
+    // DO NOT crash React
+    return Promise.reject({
+      status: 0,
+      message: 'Network error',
+    });
   }
+
+  if (response.status === 401) {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('user_profile');
+
+    if (!window.location.pathname.includes('/auth')) {
+      window.location.href = '/auth';
+    }
+
+    return Promise.reject({
+      status: 401,
+      message: 'Session expired',
+    });
+  }
+
+  if (!response.ok) {
+    let msg = `API error: ${response.status}`;
+    try {
+      const err = await response.json();
+      msg = err.detail || err.message || err.error || msg;
+    } catch {}
+
+    //  DO NOT throw — return controlled rejection
+    return Promise.reject({
+      status: response.status,
+      message: msg,
+    });
+  }
+
+  const rt = options.responseType ?? 'json';
+  if (rt === 'blob') return (await response.blob()) as T;
+  if (rt === 'text') return (await response.text()) as T;
+  return (await response.json()) as T;
 }

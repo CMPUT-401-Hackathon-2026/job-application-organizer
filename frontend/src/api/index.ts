@@ -221,107 +221,199 @@ export const applications = {
   },
 };
 
+
 // Resume API
 export const resume = {
+  // Get resume for a job application
+  get: async (applicationId: string): Promise<Resume> => {
+    return apiFetch(`/applications/${applicationId}/resume/`);
+  },
+
+  // Build resume from profile + job description using DeepSeek
   build: async (applicationId: string): Promise<Resume> => {
-    try {
-      return await apiFetch(`/resume/build`, {
-        method: 'POST',
-        body: JSON.stringify({ applicationId }),
-      });
-    } catch {
-      if (!mockResumes[applicationId]) {
-        const app = mockApplications.find((a) => a.id === applicationId);
-        if (!app) throw new Error('Application not found');
-        mockResumes[applicationId] = {
-          id: `resume-${applicationId}`,
-          applicationId,
-          header: mockProfile.name + '\n' + mockProfile.email,
-          education: mockProfile.education,
-          experience: mockProfile.experience,
-          projects: mockProfile.projects,
-          techStack: mockProfile.techStack,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        };
-      }
-      return mockResumes[applicationId];
-    }
+    return apiFetch(`/applications/${applicationId}/resume/build/`, {
+      method: 'POST',
+    });
   },
 
+  // Update resume data
   update: async (applicationId: string, data: Partial<Resume>): Promise<Resume> => {
-    try {
-      return await apiFetch(`/resume/${applicationId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-    } catch {
-      if (!mockResumes[applicationId]) {
-        await resume.build(applicationId);
-      }
-      mockResumes[applicationId] = { ...mockResumes[applicationId]!, ...data };
-      return mockResumes[applicationId]!;
-    }
+    return apiFetch(`/applications/${applicationId}/resume/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   },
 
+  // Perform ATS scan using Gemini
   atsScan: async (applicationId: string): Promise<ATSResult> => {
-    try {
-      return await apiFetch(`/resume/${applicationId}/ats-scan`);
-    } catch {
-      const res = mockResumes[applicationId];
-      const app = mockApplications.find((a) => a.id === applicationId);
-      if (!app) throw new Error('Application not found');
-
-      const jobTags = app.job.tags?.map((t) => t.toLowerCase()) || [];
-      const resumeTags = res?.techStack.map((t) => t.toLowerCase()) || [];
-      const missingKeywords = jobTags.filter((tag) => !resumeTags.some((rt) => rt.includes(tag) || tag.includes(rt)));
-
-      const score = Math.max(0, Math.min(100, 100 - missingKeywords.length * 15));
-
-      return {
-        score,
-        missingKeywords,
-        suggestions: missingKeywords.slice(0, 5),
-      };
-    }
+    return apiFetch(`/applications/${applicationId}/resume/ats-scan/`, {
+      method: 'POST',
+    });
   },
 
+  // Download LaTeX file
   downloadLatex: async (applicationId: string): Promise<void> => {
-    try {
-      const blob = await apiFetch<Blob>(`/resume/${applicationId}/latex`, {
-        headers: { Accept: 'application/x-latex' },
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `resume-${applicationId}.tex`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      const res = mockResumes[applicationId];
-      if (!res) throw new Error('Resume not found');
+    const blob = await apiFetch<Blob>(`/applications/${applicationId}/resume/latex/`, {
+      responseType: 'blob',
+    });
 
-      // Generate LaTeX content
-      const latex = `\\documentclass[11pt,a4paper]{article}
-\\begin{document}
-${res.header.split('\n').map((line) => `\\textbf{${line}}`).join(' \\\\\n')}
-\\section*{Education}
-${res.education.map((edu) => `\\textbf{${edu.school}} - ${edu.degree} in ${edu.field}`).join('\n')}
-\\section*{Experience}
-${res.experience.map((exp) => `\\textbf{${exp.company}} - ${exp.position}`).join('\n')}
-\\section*{Skills}
-${res.techStack.join(', ')}
-\\end{document}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resume-${applicationId}.tex`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 
-      const blob = new Blob([latex], { type: 'application/x-latex' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `resume-${applicationId}.tex`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+  // Download compiled PDF
+  downloadPdf: async (applicationId: string): Promise<void> => {
+    const blob = await apiFetch<Blob>(`/applications/${applicationId}/resume/pdf/`, {
+      responseType: 'blob',
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resume-${applicationId}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   },
 };
+
+
+
+// export const resume = {
+//   get: async (applicationId: number): Promise<Resume> => {
+//     return apiFetch(`/applications/${applicationId}/resume/`);
+//   },
+
+//   buildFromProfile: async (applicationId: number, jobDescription: string): Promise<Resume> => {
+//     return apiFetch(`/applications/${applicationId}/resume/build/`, {
+//       method: 'POST',
+//       body: JSON.stringify({ job_description: jobDescription }),
+//     });
+//   },
+
+//   update: async (applicationId: number, data: Partial<Resume>): Promise<Resume> => {
+//     return apiFetch(`/applications/${applicationId}/resume/`, {
+//       method: 'PATCH',
+//       body: JSON.stringify(data),
+//     });
+//   },
+
+//   downloadLatex: async (applicationId: number): Promise<void> => {
+//     const blob = await apiFetch<Blob>(`/applications/${applicationId}/resume/latex/`, {
+//       responseType: 'blob',
+//     });
+
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `resume-${applicationId}.tex`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+//   },
+// };
+// export const resume = {
+//   build: async (applicationId: string): Promise<Resume> => {
+//     try {
+//       return await apiFetch(`/resume/build`, {
+//         method: 'POST',
+//         body: JSON.stringify({ applicationId }),
+//       });
+//     } catch {
+//       if (!mockResumes[applicationId]) {
+//         const app = mockApplications.find((a) => a.id === applicationId);
+//         if (!app) throw new Error('Application not found');
+//         mockResumes[applicationId] = {
+//           id: `resume-${applicationId}`,
+//           applicationId,
+//           header: mockProfile.name + '\n' + mockProfile.email,
+//           education: mockProfile.education,
+//           experience: mockProfile.experience,
+//           projects: mockProfile.projects,
+//           techStack: mockProfile.techStack,
+//           lastUpdated: new Date().toISOString().split('T')[0],
+//         };
+//       }
+//       return mockResumes[applicationId];
+//     }
+//   },
+
+//   update: async (applicationId: string, data: Partial<Resume>): Promise<Resume> => {
+//     try {
+//       return await apiFetch(`/resume/${applicationId}`, {
+//         method: 'PATCH',
+//         body: JSON.stringify(data),
+//       });
+//     } catch {
+//       if (!mockResumes[applicationId]) {
+//         await resume.build(applicationId);
+//       }
+//       mockResumes[applicationId] = { ...mockResumes[applicationId]!, ...data };
+//       return mockResumes[applicationId]!;
+//     }
+//   },
+
+//   atsScan: async (applicationId: string): Promise<ATSResult> => {
+//     try {
+//       return await apiFetch(`/resume/${applicationId}/ats-scan`);
+//     } catch {
+//       const res = mockResumes[applicationId];
+//       const app = mockApplications.find((a) => a.id === applicationId);
+//       if (!app) throw new Error('Application not found');
+
+//       const jobTags = app.job.tags?.map((t) => t.toLowerCase()) || [];
+//       const resumeTags = res?.techStack.map((t) => t.toLowerCase()) || [];
+//       const missingKeywords = jobTags.filter((tag) => !resumeTags.some((rt) => rt.includes(tag) || tag.includes(rt)));
+
+//       const score = Math.max(0, Math.min(100, 100 - missingKeywords.length * 15));
+
+//       return {
+//         score,
+//         missingKeywords,
+//         suggestions: missingKeywords.slice(0, 5),
+//       };
+//     }
+//   },
+
+//   downloadLatex: async (applicationId: string): Promise<void> => {
+//     try {
+//       const blob = await apiFetch<Blob>(`/resume/${applicationId}/latex`, {
+//         headers: { Accept: 'application/x-latex' },
+//       });
+//       const url = URL.createObjectURL(blob);
+//       const a = document.createElement('a');
+//       a.href = url;
+//       a.download = `resume-${applicationId}.tex`;
+//       a.click();
+//       URL.revokeObjectURL(url);
+//     } catch {
+//       const res = mockResumes[applicationId];
+//       if (!res) throw new Error('Resume not found');
+
+//       // Generate LaTeX content
+//       const latex = `\\documentclass[11pt,a4paper]{article}
+// \\begin{document}
+// ${res.header.split('\n').map((line) => `\\textbf{${line}}`).join(' \\\\\n')}
+// \\section*{Education}
+// ${res.education.map((edu) => `\\textbf{${edu.school}} - ${edu.degree} in ${edu.field}`).join('\n')}
+// \\section*{Experience}
+// ${res.experience.map((exp) => `\\textbf{${exp.company}} - ${exp.position}`).join('\n')}
+// \\section*{Skills}
+// ${res.techStack.join(', ')}
+// \\end{document}`;
+
+//       const blob = new Blob([latex], { type: 'application/x-latex' });
+//       const url = URL.createObjectURL(blob);
+//       const a = document.createElement('a');
+//       a.href = url;
+//       a.download = `resume-${applicationId}.tex`;
+//       a.click();
+//       URL.revokeObjectURL(url);
+//     }
+//   },
+// };
 
 // Communications API - Now using ApplicationResponse
 export const communications = {

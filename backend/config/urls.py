@@ -26,12 +26,16 @@ def frontend_index(_request):
     except Exception:
         return HttpResponse("Frontend build not found. Run 'npm run build' in frontend or 'npm run dev' for development.")
 
-
 urlpatterns = [
     path('api/auth/', include('auth_app.urls')),
     path('api/profile/', include('profiles.urls')),
-    path('api/', include('JobApplication.urls')),
-    path("api/", include("applications.urls")),
+
+    path('api/applications/', include('applications.urls')),
+    path('api/resumes/', include('resumes.urls')),
+
+    # If JobApplication is legacy, give it a real prefix
+    path('api/jobs/', include('JobApplication.urls')),
+
     path('admin/', admin.site.urls),
     path('', frontend_index, name='frontend'),
 ]
