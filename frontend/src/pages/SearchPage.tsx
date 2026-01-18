@@ -66,44 +66,43 @@ export function SearchPage() {
     }
     
     try {
-      // First, refresh the applications list to get the latest data (including any Drafts created from Build)
-      const { data: freshApps = [] } = await refetchApplications();
+      // First, refresh the applications list to get the latest data
+      await refetchApplications();
+      
+      // Get the current applications from the query cache
+      const currentApps = queryClient.getQueryData<Application[]>(['applications']) || [];
       
       // Check if there's already an application for this job
-      const existingApp = freshApps.find((app) => app.job_id === jobToApply.id);
+      const existingApp = currentApps.find((app) => String(app.job?.id) === jobToApply.id);
       
-      if (existingApp && existingApp.stage === 'draft') {
-        // Update draft to Applied
+      if (existingApp && existingApp.stage?.toLowerCase() === 'draft') {
+        // Update draft to applied
         const updatedApp = await applications.updateStatus(existingApp.id, 'applied');
+        
+        // Force immediate refetch
+        await refetchApplications();
         addToast('Application submitted successfully', 'success');
         
-        // Manually update the query cache to ensure UI updates immediately
-        queryClient.setQueryData(['applications'], (old: Application[] = []) => {
-          return old.map((app) => (app.id === updatedApp.id ? updatedApp : app));
-        });
       } else if (!existingApp) {
-        // Create new application with Applied status
+        // Create new application with applied status
         const newApp = await applications.create(jobToApply.id, 'applied');
+        
+        // Force immediate refetch
+        await refetchApplications();
         addToast('Application submitted successfully', 'success');
         
-        // Manually update the query cache to ensure UI updates immediately
-        queryClient.setQueryData(['applications'], (old: Application[] = []) => {
-          return [...old, newApp];
-        });
-      } else if (existingApp.stage === 'applied') {
+      } else if (existingApp.stage?.toLowerCase() === 'applied') {
         // Already applied
         addToast('You have already applied for this job', 'info');
-        return; // Don't update if already applied
+        return;
       }
       
-      // Also trigger a refetch to ensure consistency
-      await refetchApplications();
     } catch (error) {
       console.error('Apply error:', error);
       addToast('Failed to submit application', 'error');
     }
   };
-
+  
   const handleBuild = async () => {
     const jobToBuild = selectedJob || selectedJobForDisplay;
     if (!jobToBuild) return;
@@ -115,7 +114,7 @@ export function SearchPage() {
     const freshApps = await applications.list();
     
     // Check if application already exists for this job
-    const existingApp = freshApps.find((app) => app.job_id === jobToBuild.id);
+    const existingApp = freshApps.find((app) => String(app.job?.id) === jobToBuild.id);
     
     if (existingApp) {
       // Navigate to builder with existing application
@@ -134,9 +133,14 @@ export function SearchPage() {
   };
 
   const isApplied = (jobId: string) => {
-    return applicationsList.some((app) => app.job_id === jobId && app.stage === 'applied');
+    return applicationsList.some((app) => {
+      // The API returns job as nested object, not job_id
+      // Convert both to strings for comparison
+      const appJobId = String(app.job?.id);
+      const appStage = app.stage?.toLowerCase();
+      return appJobId === jobId && (appStage === 'applied' || appStage === 'draft');
+    });
   };
-
   const selectedJobForDisplay = selectedJob || jobDetail;
 
   return (

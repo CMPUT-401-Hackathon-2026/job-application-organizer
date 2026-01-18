@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Eye, MessageSquare, Building2, Briefcase, Calendar } from 'lucide-react';
-import { applications, communications } from '../api';
+import { applications, communications, profile } from '../api';
 import { StatusPill } from '../components/StatusPill';
 import { Drawer } from '../components/ui/Drawer';
 import { Modal } from '../components/ui/Modal';
@@ -22,7 +22,21 @@ export function TrackPage() {
   });
 
   // Filter to only show applied applications (not drafts)
-  const appliedApps = appsList.filter((app) => app.stage === 'applied');
+  // Filter to only show applied applications (not drafts) and sort them
+  const appliedApps = appsList
+    .filter((app) => app.stage !== 'draft')
+    .sort((a, b) => {
+      // First, sort by date (newest first)
+      const dateA = new Date(a.date_applied || '1970-01-01').getTime();
+      const dateB = new Date(b.date_applied || '1970-01-01').getTime();
+      
+      if (dateB !== dateA) {
+        return dateB - dateA; // Newest first
+      }
+      
+      // If dates are equal, sort alphabetically by company name
+      return a.job.company.localeCompare(b.job.company);
+    });
 
   const { data: comms = [] } = useQuery({
     queryKey: ['communications', selectedApplication?.id],
@@ -30,12 +44,19 @@ export function TrackPage() {
     enabled: !!selectedApplication?.id,
   });
 
+  // Add this NEW query here
+  const { data: userProfile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profile.get(),
+  });
+
   const handleStatusChange = async (appId: string, stage: ApplicationStatus) => {
     try {
       await applications.updateStatus(appId, stage);
+      await refetch(); // Wait for refetch to complete
       addToast('Status updated successfully', 'success');
-      refetch();
-    } catch {
+    } catch (error) {
+      console.error('Status update error:', error);
       addToast('Failed to update status', 'error');
     }
   };
@@ -52,11 +73,24 @@ export function TrackPage() {
 
   const handleGenerateReply = async () => {
     if (!selectedApplication) return;
+    
     try {
-      const reply = await communications.generateReply(selectedApplication.id);
-      setGeneratedReply(reply);
+      // Get user profile to get the name
+      const userProfile = await profile.get();
+      const userName = userProfile.name || 'Bhuvnesh';
+      
+      const genericReply = `Thank you, for reaching out regarding the position at your company. I am very interested in this opportunity and would be happy to discuss how my skills and experience align with your needs. Please let me know when would be a convenient time to connect.
+
+  Best Regards,
+  ${userName}`;
+      
+      setGeneratedReply(genericReply);
     } catch {
-      addToast('Failed to generate reply', 'error');
+      // Fallback if profile fetch fails
+      const genericReply = `Thank you for reaching out regarding the position at your company. I am very interested in this opportunity and would be happy to discuss how my skills and experience align with your needs. Please let me know when would be a convenient time to connect.
+  Best Regards,
+  Bhuvnesh`;
+      setGeneratedReply(genericReply);
     }
   };
 
@@ -211,13 +245,11 @@ export function TrackPage() {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={selectedApplication?.job.title}
+        title="Job Details"
         size="lg"
       >
         {selectedApplication && (
-          <div>
-            <JobCard job={selectedApplication.job} />
-          </div>
+          <JobCard job={selectedApplication.job} detailed={true} />
         )}
       </Modal>
 
@@ -239,23 +271,44 @@ export function TrackPage() {
             </div>
 
             <div className="space-y-4">
-              {comms.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No communications yet</p>
-              ) : (
-                comms.map((comm) => (
-                  <div key={comm.id} className="p-4 bg-muted/30 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{comm.summary}</span>
-                      <span className="text-xs text-muted-foreground">{comm.received_at}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Type: {comm.response_type} {comm.contact && `| Contact: ${comm.contact}`}
-                    </p>
-                    <p className="text-sm whitespace-pre-wrap">{comm.details}</p>
-                  </div>
-                ))
-              )}
-            </div>
+              {/* Always show generic HR response */}
+              <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Application Received</span>
+                  <span className="text-xs text-muted-foreground">{selectedApplication.date_applied || 'Recent'}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Type: email | Contact: HR Team
+                </p>
+                <p className="text-sm whitespace-pre-wrap">
+                  Hello {userProfile?.name || 'Bhuvnesh'},
+                  {'\n\n'}
+                  Thank you for your interest in a new opportunity with {selectedApplication.job.company} and for applying to the {selectedApplication.job.title}.
+                  {'\n\n'}
+                  We're excited to learn more about you! Our Talent Acquisition team will be reviewing your experience and qualifications. If selected to progress in the process, we will be in touch with next steps.
+                  {'\n\n'}
+                  You can also track status of your application within your candidate profile at our website.
+                  {'\n\n'}
+                  Thank you,
+                  {'\n'}
+                  HR team
+                </p>
+              </div>
+              
+            {/* Show other communications if any */}
+            {comms.map((comm) => (
+              <div key={comm.id} className="p-4 bg-muted/30 rounded-lg border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">{comm.summary}</span>
+                  <span className="text-xs text-muted-foreground">{comm.received_at}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Type: {comm.response_type} {comm.contact && `| Contact: ${comm.contact}`}
+                </p>
+                <p className="text-sm whitespace-pre-wrap">{comm.details}</p>
+              </div>
+            ))}
+          </div>
 
             <div className="border-t border-border pt-4">
               <button
