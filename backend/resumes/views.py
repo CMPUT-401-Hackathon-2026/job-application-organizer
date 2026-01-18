@@ -8,11 +8,7 @@ from resumes.models import Resume
 from resumes.latex import render_resume_to_latex
 import json
 import os
-import google.generativeai as genai
 
-
-# Initialize Gemini client
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_default_user():
     """Get the first user in the database (for single-user setup)"""
