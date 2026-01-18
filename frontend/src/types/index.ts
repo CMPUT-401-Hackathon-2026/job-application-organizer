@@ -26,7 +26,14 @@ export interface Application {
   notes?: string;
 }
 
-export type ApplicationStatus = 'Draft' | 'Applied' | 'Interview' | 'Offer' | 'Rejection' | 'Archived';
+export type ApplicationStatus =
+  | 'draft'
+  | 'applied'
+  | 'interview'
+  | 'offer'
+  | 'rejection'
+  | 'withdrawn';
+
 
 export interface Profile {
   id: string;

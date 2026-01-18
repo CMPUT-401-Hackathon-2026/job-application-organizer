@@ -22,7 +22,7 @@ export function TrackPage() {
   });
 
   // Filter to only show applied applications (not drafts)
-  const appliedApps = appsList.filter((app) => app.status === 'Applied');
+  const appliedApps = appsList.filter((app) => app.status === 'applied');
 
   const { data: comms = [] } = useQuery({
     queryKey: ['communications', selectedApplication?.id],
@@ -116,11 +116,12 @@ export function TrackPage() {
                       }
                       className="bg-background border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="Applied">Applied</option>
-                      <option value="Interview">Interview</option>
-                      <option value="Offer">Offer</option>
-                      <option value="Rejection">Rejection</option>
-                      <option value="Archived">Archived</option>
+                      <option value="draft">Draft</option>
+                      <option value="applied">Applied</option>
+                      <option value="interview">Interview</option>
+                      <option value="offer">Offer</option>
+                      <option value="rejection">Rejection</option>
+                      <option value="withdrawn">Withdrawn</option>
                     </select>
                   </td>
                   <td className="px-6 py-4">
@@ -177,11 +178,12 @@ export function TrackPage() {
                   }
                   className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Applied">Applied</option>
-                  <option value="Interview">Interview</option>
-                  <option value="Offer">Offer</option>
-                  <option value="Rejection">Rejection</option>
-                  <option value="Archived">Archived</option>
+                      <option value="draft">Draft</option>
+                      <option value="applied">Applied</option>
+                      <option value="interview">Interview</option>
+                      <option value="offer">Offer</option>
+                      <option value="rejection">Rejection</option>
+                      <option value="withdrawn">Withdrawn</option>
                 </select>
               </div>
               <div className="flex gap-2">

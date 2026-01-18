@@ -12,9 +12,11 @@ class Application(models.Model):
     )
 
     job = models.ForeignKey(
-        "job_application.JobApplication",
+        "JobApplication.JobApplication",
         on_delete=models.CASCADE,
-        related_name="applications"
+        related_name="applications",
+        null=True,
+        blank=True
     )
 
     class Stage(models.TextChoices):

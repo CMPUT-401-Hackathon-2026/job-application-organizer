@@ -1,4 +1,6 @@
 import { apiFetch } from './client';
+
+
 import {
   mockJobs,
   mockApplications,
@@ -165,7 +167,7 @@ export const applications = {
     }
   },
 
-  create: async (jobId: string, status: ApplicationStatus = 'Applied'): Promise<Application> => {
+  create: async (jobId: string, status: ApplicationStatus = 'applied'): Promise<Application> => {
     try {
       return await apiFetch('/applications', {
         method: 'POST',
@@ -178,7 +180,7 @@ export const applications = {
         id: `app-${Date.now()}`,
         jobId,
         job,
-        dateApplied: status === 'Applied' ? new Date().toISOString().split('T')[0] : '',
+        dateApplied: status === 'applied' ? new Date().toISOString().split('T')[0] : '',
         status,
       };
       mockApplications.push(newApp);
@@ -197,7 +199,7 @@ export const applications = {
       if (!app) throw new Error('Application not found');
       app.status = status;
       // Set dateApplied when status changes to Applied
-      if (status === 'Applied' && !app.dateApplied) {
+      if (status === 'applied' && !app.dateApplied) {
         app.dateApplied = new Date().toISOString().split('T')[0];
       }
       return app;
