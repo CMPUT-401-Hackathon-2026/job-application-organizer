@@ -48,3 +48,15 @@ class ApplicationViewSet(ModelViewSet):
             serializer.save(application=application)
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
+    
+    def partial_update(self, request, *args, **kwargs):
+        logger.info(f"Updating application {kwargs.get('pk')} with data: {request.data}")
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error updating application: {str(e)}")
+            raise
