@@ -62,7 +62,7 @@ export function AuthPage() {
         const idToken = await userCredential.user.getIdToken();
 
         // Exchange Firebase ID token with backend to get backend user
-        const res = await fetch('/api/auth/login/', {
+        const res = await fetch('http://localhost:8000/api/auth/login/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: userCredential.user.email, id_token: idToken }),
@@ -94,7 +94,7 @@ export function AuthPage() {
         const idToken = await userCredential.user.getIdToken();
 
         // 2. Create User in Django Backend
-        const response = await fetch('/api/auth/register/', {
+        const response = await fetch('http://localhost:8000/api/auth/register/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export function AuthPage() {
       const idToken = await userCredential.user.getIdToken();
 
       // Exchange Firebase ID token with backend to get backend user
-      const res = await fetch('/api/auth/login/', {
+      const res = await fetch('http://localhost:8000/api/auth/login/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userCredential.user.email, id_token: idToken }),
