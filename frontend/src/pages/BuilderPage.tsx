@@ -441,24 +441,24 @@ export function BuilderPage() {
 
         {/* Side Panel - Job Keywords */}
         <div className="lg:col-span-1">
-          <div className="bg-card border border-border rounded-lg p-4 sticky top-4">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertCircle size={20} className="text-primary" />
-              <h3 className="font-semibold">Job Keywords</h3>
-            </div>
-            <div className="space-y-2">
-              {jobKeywords.map((keyword) => (
-                <span
-                  key={keyword}
-                  className="inline-block px-2 py-1 text-xs bg-muted rounded-md text-muted-foreground"
-                >
-                  {keyword}
-                </span>
-              ))}
-            </div>
+        <div className="bg-card border border-border rounded-lg p-4 sticky top-4">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle size={20} className="text-primary" />
+            <h3 className="font-semibold">Job Keywords</h3>
           </div>
-          <ATSScoreCard applicationId={applicationId!} />
+          <div className="space-y-2">
+            {(jobKeywords || []).map((keyword) => (
+              <span
+                key={keyword}
+                className="inline-block px-2 py-1 text-xs bg-muted rounded-md text-muted-foreground"
+              >
+                {keyword}
+              </span>
+            ))}
+          </div>
         </div>
+        <ATSScoreCard applicationId={applicationId!} />
+      </div>
       </div>
     </div>
   );
