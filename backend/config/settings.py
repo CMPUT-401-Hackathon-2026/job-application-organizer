@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-wto44!z3efso*#nqc#6-w62_mf=16^pp7s($^i95*w0-3e5p4o
 DEBUG = True
 
 # Allow all hosts for development; adjust for production as needed
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["*", "hackaton.neatify.top"]
 
 AUTH_USER_MODEL = "profiles.User"
 
