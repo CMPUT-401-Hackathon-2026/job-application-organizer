@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+import json
 
 
 class ResumeGeneratorService:
@@ -22,14 +23,30 @@ class ResumeGeneratorService:
             job_description (str): The job description to tailor the resume for
             
         Returns:
-            str: The generated tailored resume content
+            str: The generated tailored resume content as JSON string
         """
+        
+        print("\n" + "="*80)
+        print("RESUME GENERATION DEBUG INFO")
+        print("="*80)
+        print(f"Job Description Length: {len(job_description)} characters")
+        print(f"Profile Name: {profile_data.get('name', 'N/A')}")
+        print(f"Profile Email: {profile_data.get('email', 'N/A')}")
+        print(f"Experience Count: {len(profile_data.get('experience', []))}")
+        print(f"Projects Count: {len(profile_data.get('projects', []))}")
+        print(f"Education Count: {len(profile_data.get('education', []))}")
+        print(f"Programming Languages: {profile_data.get('programmingLanguages', [])}")
+        print(f"Frameworks: {profile_data.get('frameworks', [])}")
+        print(f"Libraries: {profile_data.get('libraries', [])}")
+        print("="*80 + "\n")
         
         # Create the prompt for the AI
         prompt = self._create_prompt(profile_data, job_description)
         
         # Call OpenRouter API
         response = self._call_api(prompt)
+        
+        print(f"\n[SUCCESS] Generated resume length: {len(response)} characters\n")
         
         return response
     
@@ -52,131 +69,110 @@ class ResumeGeneratorService:
         # Build skills section
         skills_text = self._format_skills(profile_data)
         
-        prompt = f"""
-You are an automated resume-structuring engine inside a production system.
+        prompt = f"""You are an expert resume writer and ATS optimization specialist.
 
-Your task is to transform a master resume into a job-tailored structured resume object.
-
-You MUST follow all rules EXACTLY.
+Your task is to create a TAILORED resume that highlights the most relevant qualifications from the candidate's profile for this specific job.
 
 ======================
-INPUT DATA
+CANDIDATE PROFILE (MASTER RESUME)
 ======================
 
-CANDIDATE PROFILE:
 Name: {name}
 Email: {email}
 
-SKILLS:
+TECHNICAL SKILLS:
 {skills_text}
 
 WORK EXPERIENCE:
 {experience_text}
 
-PROJECTS:
-{projects_text}
-
 EDUCATION:
 {education_text}
 
-JOB DESCRIPTION:
+PROJECTS:
+{projects_text}
+
+======================
+TARGET JOB DESCRIPTION
+======================
+
 {job_description}
 
 ======================
-TASK
+YOUR TASK
 ======================
 
-Analyze the job description and select, reorder, and emphasize the most relevant information from the candidate profile.
+Analyze the job description and create a tailored resume by:
 
-You are NOT allowed to invent any information.
+1. **REORDER** experiences and projects to put the most relevant ones FIRST
+2. **SELECT** the most relevant bullet points from each experience
+3. **EMPHASIZE** skills and technologies mentioned in the job description
+4. **CUSTOMIZE** the professional summary to match the role
+5. **PRIORITIZE** technical skills that match job requirements
 
-You must restructure the resume into a machine-readable JSON object.
-
-======================
-CRITICAL OUTPUT RULES
-======================
-
-YOU MUST RETURN VALID JSON ONLY.
-
-DO NOT:
-
-- Do NOT include explanations
-- Do NOT include markdown
-- Do NOT include backticks
-- Do NOT include comments
-- Do NOT include trailing commas
-- Do NOT include extra fields
-- Do NOT include natural language outside the JSON object
-
-If you break JSON format, the system will crash.
+CRITICAL RULES:
+- You MUST use ONLY information from the candidate profile above
+- DO NOT invent experiences, skills, or accomplishments
+- DO NOT add technologies the candidate doesn't have
+- You MAY reword bullets to emphasize relevance
+- You MAY reorder content for maximum impact
+- Return ONLY valid JSON - no markdown, no backticks, no explanations
 
 ======================
-REQUIRED JSON SCHEMA
+REQUIRED JSON OUTPUT FORMAT
 ======================
 
-You MUST return exactly this JSON structure:
+Return EXACTLY this JSON structure (and nothing else):
 
-{
-  "header": "Full Name | Email",
-  "summary": "2-3 sentence professional summary tailored to the job description",
-
+{{
+  "header": "{name} | {email}",
+  "summary": "2-3 sentence professional summary emphasizing skills from job description",
   "education": [
-    {
+    {{
       "id": "edu-1",
-      "school": "string",
-      "degree": "string",
-      "field": "string",
-      "startDate": "string",
-      "endDate": "string"
-    }
+      "school": "School name from profile",
+      "degree": "Degree from profile",
+      "field": "Field from profile",
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM or Present"
+    }}
   ],
-
   "experience": [
-    {
+    {{
       "id": "exp-1",
-      "company": "string",
-      "position": "string",
-      "startDate": "string",
-      "endDate": "string",
+      "company": "Company from profile",
+      "position": "Position from profile",
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM or Present",
       "description": [
-        "Achievement-focused bullet using metrics where possible",
-        "Each bullet must be a single sentence"
+        "Most relevant bullet points from profile",
+        "Reordered by relevance to job",
+        "Use action verbs and metrics"
       ]
-    }
+    }}
   ],
-
   "projects": [
-    {
+    {{
       "id": "proj-1",
-      "name": "string",
-      "description": "1-2 sentence description emphasizing relevance to the job"
-    }
+      "name": "Project from profile",
+      "description": "1-2 sentences emphasizing relevance to job"
+    }}
   ],
+  "techStack": ["tools", "platforms"],
+  "frameworks": ["frameworks from profile"],
+  "libraries": ["libraries from profile"],
+  "programmingLanguages": ["languages from profile, prioritized by job relevance"]
+}}
 
-  "techStack": ["tools, platforms, systems"],
-  "frameworks": ["frameworks only"],
-  "libraries": ["libraries only"],
-  "programmingLanguages": ["programming languages only"]
-}
+EXAMPLE OF TAILORING:
 
-======================
-NORMALIZATION RULES
-======================
+If job mentions "Java, Spring Boot, microservices":
+- Put Java FIRST in programmingLanguages
+- Put Spring Boot experience FIRST
+- Emphasize microservices projects
+- Lead with relevant bullet points
 
-1. Reorder experience and projects by relevance to the job
-2. Prioritize technical skills mentioned in the job description
-3. Use strong action verbs
-4. Do NOT repeat identical bullets
-5. IDs must be stable strings like "exp-1", "proj-2", etc.
-
-======================
-FINAL INSTRUCTION
-======================
-
-Return ONLY the JSON object.
-Nothing else.
-
-Begin.
+NOW GENERATE THE TAILORED RESUME JSON:
 """
         
         return prompt
@@ -188,6 +184,7 @@ Begin.
         prog_langs = profile_data.get('programmingLanguages', [])
         frameworks = profile_data.get('frameworks', [])
         libraries = profile_data.get('libraries', [])
+        tech_stack = profile_data.get('techStack', [])
         
         if prog_langs:
             skills.append(f"Programming Languages: {', '.join(prog_langs)}")
@@ -195,6 +192,8 @@ Begin.
             skills.append(f"Frameworks: {', '.join(frameworks)}")
         if libraries:
             skills.append(f"Libraries: {', '.join(libraries)}")
+        if tech_stack and tech_stack != prog_langs:  # Avoid duplication
+            skills.append(f"Tools & Technologies: {', '.join(tech_stack)}")
         
         return '\n'.join(skills) if skills else "No specific skills listed"
     
@@ -289,11 +288,12 @@ Begin.
                     "content": prompt
                 }
             ],
-            "max_tokens": 2500,
-            "temperature": 0.7,
+            "max_tokens": 3000,  # Increased for longer resumes
+            "temperature": 0.3,  # Lower for more consistent formatting
         }
         
         try:
+            print("[API] Calling OpenRouter API...")
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
@@ -303,14 +303,46 @@ Begin.
             response.raise_for_status()
             
             data = response.json()
+            print(f"[API] Response Status: {response.status_code}")
             
             if "choices" in data and len(data["choices"]) > 0:
                 generated_resume = data["choices"][0]["message"]["content"]
-                return generated_resume.strip()
+                
+                # Clean up the response - remove markdown code fences if present
+                generated_resume = generated_resume.strip()
+                
+                print(f"[API] Raw response preview: {generated_resume[:200]}...")
+                
+                # Remove markdown code blocks
+                if generated_resume.startswith("```json"):
+                    print("[API] Removing ```json prefix")
+                    generated_resume = generated_resume[7:]
+                if generated_resume.startswith("```"):
+                    print("[API] Removing ``` prefix")
+                    generated_resume = generated_resume[3:]
+                if generated_resume.endswith("```"):
+                    print("[API] Removing ``` suffix")
+                    generated_resume = generated_resume[:-3]
+                
+                generated_resume = generated_resume.strip()
+                
+                # Validate it's valid JSON
+                try:
+                    json.loads(generated_resume)
+                    print("[API] ✓ Successfully validated JSON resume")
+                except json.JSONDecodeError as e:
+                    print(f"[ERROR] Generated resume is not valid JSON: {e}")
+                    print(f"[ERROR] Cleaned response: {generated_resume[:500]}...")
+                    raise ValueError(f"AI did not return valid JSON: {e}")
+                
+                return generated_resume
             else:
+                print("[ERROR] No choices in API response")
                 raise ValueError("No response generated from API")
                 
         except requests.exceptions.RequestException as e:
+            print(f"[ERROR] API request failed: {str(e)}")
             raise Exception(f"API request failed: {str(e)}")
         except (KeyError, IndexError) as e:
+            print(f"[ERROR] Unexpected API response format: {str(e)}")
             raise Exception(f"Unexpected API response format: {str(e)}")

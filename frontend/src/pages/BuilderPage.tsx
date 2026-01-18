@@ -6,6 +6,17 @@ import { resume, jobs } from '../api';
 import { useToastStore } from '../components/ui/Toast';
 import type { Resume } from '../types';
 
+function isResumeComplete(resumeData: any): boolean {
+  // Check if resume has all the required fields
+  return !!(
+    resumeData?.header &&
+    resumeData?.education &&
+    resumeData?.experience &&
+    Array.isArray(resumeData.education) &&
+    Array.isArray(resumeData.experience)
+  );
+}
+
 export function BuilderPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const { addToast } = useToastStore();
@@ -24,22 +35,44 @@ export function BuilderPage() {
   });
 
   // First try to get existing resume
-  const { data: existingResume, isLoading: isLoadingExisting } = useQuery({
+  const { data: existingResume, isLoading: isLoadingExisting, error: existingError } = useQuery({
     queryKey: ['resume', applicationId],
     queryFn: () => resume.get(applicationId!),
     enabled: !!applicationId,
     retry: false,
   });
 
-  // If no resume exists, build one
+  // Check if existing resume is incomplete
+  const needsRebuild = existingResume && !isResumeComplete(existingResume);
+
+  // If no resume exists OR resume is incomplete, build one
   const { data: builtResume, isLoading: isBuilding } = useQuery({
     queryKey: ['resume-build', applicationId],
-    queryFn: () => resume.build(applicationId!),
-    enabled: !!applicationId && !existingResume && !isLoadingExisting,
+    queryFn: async () => {
+      console.log('Building resume...');
+      const result = await resume.build(applicationId!);
+      console.log('Build result:', result);
+      return result;
+    },
+    enabled: !!applicationId && (!existingResume || needsRebuild) && !isLoadingExisting,
   });
 
-  const resumeData = existingResume || builtResume;
+  const resumeData = (needsRebuild ? builtResume : existingResume) || builtResume;
   const isLoading = isLoadingExisting || isBuilding || isLoadingJob;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('BuilderPage state:', {
+      applicationId,
+      hasJob: !!job,
+      existingResume,
+      needsRebuild,
+      builtResume,
+      resumeData,
+      isLoading,
+      isBuilding,
+    });
+  }, [applicationId, job, existingResume, needsRebuild, builtResume, resumeData, isLoading, isBuilding]);
 
   // Mutation for updating resume
   const updateMutation = useMutation({
@@ -56,7 +89,7 @@ export function BuilderPage() {
   });
 
   useEffect(() => {
-    if (resumeData) {
+    if (resumeData && isResumeComplete(resumeData)) {
       setEditedContent(resumeData);
     }
   }, [resumeData]);
@@ -71,11 +104,12 @@ export function BuilderPage() {
     );
   }
 
-  if (isLoading || !resumeData) {
+  if (isLoading || !resumeData || !isResumeComplete(resumeData)) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center text-muted-foreground">
           {isBuilding ? 'Building your tailored resume...' : 'Loading resume...'}
+          {needsRebuild && <p className="text-xs mt-2">Incomplete resume detected, rebuilding...</p>}
         </div>
       </div>
     );
