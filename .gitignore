@@ -22,7 +22,7 @@ media/
 # =====================
 # Node / React
 # =====================
-frontend/node_modules/
+node_modules/
 frontend/dist/
 
 # =====================
@@ -32,3 +32,4 @@ frontend/dist/
 .idea/
 # Share run configurations with team
 !.idea/runConfigurations/
+/backend/firebase-key.json

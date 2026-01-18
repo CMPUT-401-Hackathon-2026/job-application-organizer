@@ -1,23 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyC8di3tW-R3VLD7BDb4veklR-lZTYRevzA",
-  authDomain: "hackaton-b70fc.firebaseapp.com",
-  projectId: "hackaton-b70fc",
-  storageBucket: "hackaton-b70fc.firebasestorage.app",
-  messagingSenderId: "133209721933",
-  appId: "1:133209721933:web:cfa9181426dc0d079fe004",
-  measurementId: "G-X7WLWL8SH4"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
+// Note: analytics not used here
 
 const AuthContext = createContext();
 
@@ -27,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    return onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       try {
         if (firebaseUser) {
@@ -56,12 +40,20 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     });
-
-    return unsubscribe;
   }, []);
 
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      console.log('User signed out');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setError(err.message);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, auth }}>
+    <AuthContext.Provider value={{ user, loading, error, auth, logout }}>
       {children}
     </AuthContext.Provider>
   );

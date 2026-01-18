@@ -1,7 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Full Stack (Dev Mode)" type="CompoundRunConfigurationType">
-    <toRun name="Django Server" type="Python.DjangoServer" />
-    <toRun name="Frontend Dev Server" type="js.build_tools.npm" />
-    <method v="2" />
-  </configuration>
-</component>

@@ -27,8 +27,9 @@ SECRET_KEY = 'django-insecure-wto44!z3efso*#nqc#6-w62_mf=16^pp7s($^i95*w0-3e5p4o
 DEBUG = True
 
 # Allow all hosts for development; adjust for production as needed
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["*", "hackaton.neatify.top"]
 
+AUTH_USER_MODEL = "profiles.User"
 
 # Application definition
 
@@ -40,8 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'JobApplication',
+    "profiles",
     'corsheaders',
     'auth_app',
+    'applications',
+    "resumes",
 ]
 
 MIDDLEWARE = [
@@ -56,6 +61,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {
@@ -116,9 +122,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Authentication
-AUTH_USER_MODEL = 'auth_app.CustomUser'
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -149,11 +152,22 @@ CORS_ALLOWED_ORIGINS = [
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-    ]
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'auth_app.authentication.FirebaseAuthentication',
+    ],
 }
 
 # Firebase Configuration
 load_dotenv()
 
-FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', 'firebase-key.json')
+# Path to Firebase service account credentials JSON file
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS_PATH', str(BASE_DIR / 'firebase-key.json'))
 
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://openrouter.ai/api/v1')
+MODEL_NAME = os.getenv('MODEL_NAME', 'deepseek/deepseek-r1')
+
+
+# Re-enable APPEND_SLASH to handle missing trailing slashes
+APPEND_SLASH = True
