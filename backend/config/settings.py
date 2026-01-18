@@ -61,6 +61,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+# Allow all origins for CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
