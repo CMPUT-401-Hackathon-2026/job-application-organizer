@@ -5,9 +5,9 @@ import { applications, communications } from '../api';
 import { StatusPill } from '../components/StatusPill';
 import { Drawer } from '../components/ui/Drawer';
 import { Modal } from '../components/ui/Modal';
-import { JobCard } from '../components/JobCard';
+import { ApplicationCard } from '../components/ApplicationCard';
 import { useToastStore } from '../components/ui/Toast';
-import type { Application, ApplicationStatus } from '../types';
+import type { Application, ApplicationStage } from '../types';
 
 export function TrackPage() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
@@ -22,7 +22,7 @@ export function TrackPage() {
   });
 
   // Filter to only show applied applications (not drafts)
-  const appliedApps = appsList.filter((app) => app.status === 'Applied');
+  const appliedApps = appsList.filter((app) => app.stage === 'applied');
 
   const { data: comms = [] } = useQuery({
     queryKey: ['communications', selectedApplication?.id],
@@ -30,15 +30,16 @@ export function TrackPage() {
     enabled: !!selectedApplication?.id,
   });
 
-  const handleStatusChange = async (appId: string, status: ApplicationStatus) => {
-    try {
-      await applications.updateStatus(appId, status);
-      addToast('Status updated successfully', 'success');
-      refetch();
-    } catch {
-      addToast('Failed to update status', 'error');
-    }
-  };
+  const handleStatusChange = async (appId: string, stage: ApplicationStage) => {
+  try {
+    await applications.updateStatus(appId, stage);
+    addToast('Status updated successfully', 'success');
+    refetch();
+  } catch {
+    addToast('Failed to update status', 'error');
+  }
+};
+
 
   const handleView = (app: Application) => {
     setSelectedApplication(app);
@@ -96,11 +97,11 @@ export function TrackPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Building2 size={18} className="text-muted-foreground" />
-                      <span className="font-medium">{app.job.company}</span>
+                      <span className="font-medium">{app.company}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-medium">{app.job.title}</span>
+                    <span className="font-medium">{app.title}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -110,17 +111,18 @@ export function TrackPage() {
                   </td>
                   <td className="px-6 py-4">
                     <select
-                      value={app.status}
+                      value={app.stage}
                       onChange={(e) =>
-                        handleStatusChange(app.id, e.target.value as ApplicationStatus)
+                        handleStatusChange(app.id, e.target.value as ApplicationStage)
                       }
                       className="bg-background border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="Applied">Applied</option>
-                      <option value="Interview">Interview</option>
-                      <option value="Offer">Offer</option>
-                      <option value="Rejection">Rejection</option>
-                      <option value="Archived">Archived</option>
+                      <option value="draft">Draft</option>
+                      <option value="applied">Applied</option>
+                      <option value="interview">Interview</option>
+                      <option value="offer">Offer</option>
+                      <option value="rejection">Rejection</option>
+                      <option value="withdrawn">Withdrawn</option>
                     </select>
                   </td>
                   <td className="px-6 py-4">
@@ -160,10 +162,10 @@ export function TrackPage() {
             <div key={app.id} className="bg-card border border-border rounded-lg p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-semibold text-lg">{app.job.title}</h3>
-                  <p className="text-muted-foreground">{app.job.company}</p>
+                  <h3 className="font-semibold text-lg">{app.title}</h3>
+                  <p className="text-muted-foreground">{app.company}</p>
                 </div>
-                <StatusPill status={app.status} />
+                <StatusPill status={app.stage} />
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                 <Calendar size={14} />
@@ -171,17 +173,18 @@ export function TrackPage() {
               </div>
               <div className="flex items-center gap-2 mb-3">
                 <select
-                  value={app.status}
+                  value={app.stage}
                   onChange={(e) =>
-                    handleStatusChange(app.id, e.target.value as ApplicationStatus)
+                    handleStatusChange(app.id, e.target.value as ApplicationStage)
                   }
                   className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="Applied">Applied</option>
-                  <option value="Interview">Interview</option>
-                  <option value="Offer">Offer</option>
-                  <option value="Rejection">Rejection</option>
-                  <option value="Archived">Archived</option>
+                  <option value="draft">Draft</option>
+                  <option value="applied">Applied</option>
+                  <option value="interview">Interview</option>
+                  <option value="offer">Offer</option>
+                  <option value="rejection">Rejection</option>
+                  <option value="withdrawn">Withdrawn</option>
                 </select>
               </div>
               <div className="flex gap-2">
@@ -209,12 +212,12 @@ export function TrackPage() {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={selectedApplication?.job.title}
+        title={selectedApplication?.title}
         size="lg"
       >
         {selectedApplication && (
           <div>
-            <JobCard job={selectedApplication.job} />
+            <ApplicationCard application ={selectedApplication} />
           </div>
         )}
       </Modal>
@@ -232,8 +235,8 @@ export function TrackPage() {
         {selectedApplication && (
           <div className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-2">{selectedApplication.job.title}</h3>
-              <p className="text-sm text-muted-foreground">{selectedApplication.job.company}</p>
+              <h3 className="font-semibold mb-2">{selectedApplication.title}</h3>
+              <p className="text-sm text-muted-foreground">{selectedApplication.company}</p>
             </div>
 
             <div className="space-y-4">
