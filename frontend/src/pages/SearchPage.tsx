@@ -73,24 +73,25 @@ export function SearchPage() {
       const currentApps = queryClient.getQueryData<Application[]>(['applications']) || [];
       
       // Check if there's already an application for this job
-      const existingApp = freshApps.find((app) => app.job_id === jobToApply.id);
+      const existingApp = currentApps.find((app) => String(app.job?.id) === jobToApply.id);
       
-      if (existingApp && existingApp.stage === 'draft') {
-        // Update draft to Applied
+      if (existingApp && existingApp.stage?.toLowerCase() === 'draft') {
+        // Update draft to applied
         const updatedApp = await applications.updateStatus(existingApp.id, 'applied');
-        addToast('Application submitted successfully', 'success');
         
-      } else if (!existingApp) {
-        // Create new application with Applied status
-        const newApp = await applications.create(jobToApply.id, 'applied');
+        // Force immediate refetch
         await refetchApplications();
         addToast('Application submitted successfully', 'success');
         
-        // Manually update the query cache to ensure UI updates immediately
-        queryClient.setQueryData(['applications'], (old: Application[] = []) => {
-          return [...old, newApp];
-        });
-      } else if (existingApp.stage === 'applied') {
+      } else if (!existingApp) {
+        // Create new application with applied status
+        const newApp = await applications.create(jobToApply.id, 'applied');
+        
+        // Force immediate refetch
+        await refetchApplications();
+        addToast('Application submitted successfully', 'success');
+        
+      } else if (existingApp.stage?.toLowerCase() === 'applied') {
         // Already applied
         addToast('You have already applied for this job', 'info');
         return;
