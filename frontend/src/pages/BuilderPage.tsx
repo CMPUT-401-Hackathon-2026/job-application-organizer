@@ -627,6 +627,8 @@ export function BuilderPage() {
             </div>
           )}
         </div>
+        <ATSScoreCard applicationId={applicationId!} />
+      </div>
       </div>
     </div>
   );

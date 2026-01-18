@@ -10,6 +10,7 @@ export default defineConfig({
     assetsDir: 'assets',
   },
   server: {
+    allowedHosts: ['hackaton.neatify.top'],
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
