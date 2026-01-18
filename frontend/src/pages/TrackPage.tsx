@@ -44,6 +44,12 @@ export function TrackPage() {
     enabled: !!selectedApplication?.id,
   });
 
+  // Add this NEW query here
+  const { data: userProfile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profile.get(),
+  });
+
   const handleStatusChange = async (appId: string, stage: ApplicationStatus) => {
     try {
       await applications.updateStatus(appId, stage);
@@ -275,7 +281,7 @@ export function TrackPage() {
                   Type: email | Contact: HR Team
                 </p>
                 <p className="text-sm whitespace-pre-wrap">
-                  Hello Bhuvnesh,
+                  Hello {userProfile?.name || 'Bhuvnesh'},
                   {'\n\n'}
                   Thank you for your interest in a new opportunity with {selectedApplication.job.company} and for applying to the {selectedApplication.job.title}.
                   {'\n\n'}

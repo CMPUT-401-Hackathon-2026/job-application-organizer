@@ -73,13 +73,6 @@ export function SearchPage() {
       const currentApps = queryClient.getQueryData<Application[]>(['applications']) || [];
       
       // Check if there's already an application for this job
-<<<<<<< HEAD
-      const existingApp = freshApps.find((app) => app.job_id === jobToApply.id);
-      
-      if (existingApp && existingApp.stage === 'draft') {
-        // Update draft to Applied
-        const updatedApp = await applications.updateStatus(existingApp.id, 'applied');
-=======
       const existingApp = currentApps.find((app) => String(app.job?.id) === jobToApply.id);
       
       if (existingApp && existingApp.stage?.toLowerCase() === 'draft') {
@@ -88,21 +81,9 @@ export function SearchPage() {
         
         // Force immediate refetch
         await refetchApplications();
->>>>>>> button-correction
         addToast('Application submitted successfully', 'success');
         
       } else if (!existingApp) {
-<<<<<<< HEAD
-        // Create new application with Applied status
-        const newApp = await applications.create(jobToApply.id, 'applied');
-        addToast('Application submitted successfully', 'success');
-        
-        // Manually update the query cache to ensure UI updates immediately
-        queryClient.setQueryData(['applications'], (old: Application[] = []) => {
-          return [...old, newApp];
-        });
-      } else if (existingApp.stage === 'applied') {
-=======
         // Create new application with applied status
         const newApp = await applications.create(jobToApply.id, 'applied');
         
@@ -111,7 +92,6 @@ export function SearchPage() {
         addToast('Application submitted successfully', 'success');
         
       } else if (existingApp.stage?.toLowerCase() === 'applied') {
->>>>>>> button-correction
         // Already applied
         addToast('You have already applied for this job', 'info');
         return;
@@ -134,11 +114,7 @@ export function SearchPage() {
     const freshApps = await applications.list();
     
     // Check if application already exists for this job
-<<<<<<< HEAD
-    const existingApp = freshApps.find((app) => app.job_id === jobToBuild.id);
-=======
     const existingApp = freshApps.find((app) => String(app.job?.id) === jobToBuild.id);
->>>>>>> button-correction
     
     if (existingApp) {
       // Navigate to builder with existing application
@@ -157,9 +133,6 @@ export function SearchPage() {
   };
 
   const isApplied = (jobId: string) => {
-<<<<<<< HEAD
-    return applicationsList.some((app) => app.job_id === jobId && app.stage === 'applied');
-=======
     return applicationsList.some((app) => {
       // The API returns job as nested object, not job_id
       // Convert both to strings for comparison
@@ -167,7 +140,6 @@ export function SearchPage() {
       const appStage = app.stage?.toLowerCase();
       return appJobId === jobId && (appStage === 'applied' || appStage === 'draft');
     });
->>>>>>> button-correction
   };
   const selectedJobForDisplay = selectedJob || jobDetail;
 
