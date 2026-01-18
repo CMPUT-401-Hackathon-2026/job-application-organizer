@@ -60,22 +60,7 @@ export const mockJobs: Job[] = [
   },
 ];
 
-export const mockApplications: Application[] = [
-  {
-    id: '1',
-    jobId: '1',
-    job: mockJobs[0],
-    dateApplied: '2024-01-16',
-    status: 'Applied',
-  },
-  {
-    id: '2',
-    jobId: '2',
-    job: mockJobs[1],
-    dateApplied: '2024-01-11',
-    status: 'Interview',
-  },
-];
+export const mockApplications: Application[] = [];
 
 export const mockProfile: Profile = {
   id: '1',
@@ -89,7 +74,7 @@ export const mockProfile: Profile = {
       field: 'Computer Science',
       startDate: '2018-09',
       endDate: '2022-05',
-      description: 'Graduated with honors, focused on software engineering and web development.',
+      description:"bruh",
     },
   ],
   experience: [
@@ -116,6 +101,9 @@ export const mockProfile: Profile = {
     },
   ],
   techStack: ['React', 'TypeScript', 'Django', 'Python', 'PostgreSQL'],
+  frameworks: ['React', 'Django'],
+  libraries: ['TypeScript'],
+  programmingLanguages: ['Python', 'TypeScript', 'JavaScript'],
   links: [
     { id: '1', label: 'GitHub', url: 'https://github.com/johndoe' },
     { id: '2', label: 'LinkedIn', url: 'https://linkedin.com/in/johndoe' },
@@ -145,15 +133,4 @@ export const mockCommunications: Communication[] = [
   },
 ];
 
-export const mockResumes: Record<string, Resume> = {
-  '1': {
-    id: '1',
-    applicationId: '1',
-    header: 'John Doe\nSoftware Developer\njohn.doe@example.com | (555) 123-4567',
-    education: mockProfile.education,
-    experience: mockProfile.experience,
-    projects: mockProfile.projects,
-    techStack: mockProfile.techStack,
-    lastUpdated: '2024-01-16',
-  },
-};
+export const mockResumes: Record<string, Resume> = {};

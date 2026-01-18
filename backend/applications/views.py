@@ -9,6 +9,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# from rest_framework import viewsets
+
+
+# class ApplicationViewSet(viewsets.ModelViewSet):
+#     serializer_class = ApplicationSerializer
+    
+#     def get_queryset(self):
+#         # Filter by current user
+#         return Application.objects.filter(user=self.request.user).select_related('job')
+    
+#     def perform_create(self, serializer):
+#         # Automatically set the user when creating
+#         serializer.save(user=self.request.user)
+
+
 
 class ApplicationViewSet(ModelViewSet):
     serializer_class = ApplicationSerializer

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Edit2, Check, X, FileDown, Scan, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { resume, applications } from '../api';
+import { resume, jobs } from '../api';
 import { useToastStore } from '../components/ui/Toast';
 import type { Resume } from '../types';
 
@@ -16,9 +16,10 @@ export function BuilderPage() {
   const [atsDetails, setAtsDetails] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  const { data: application } = useQuery({
-    queryKey: ['application', applicationId],
-    queryFn: () => applications.list().then((apps) => apps.find((a) => a.id === applicationId)),
+  // Load the JOB details (not application)
+  const { data: job, isLoading: isLoadingJob } = useQuery({
+    queryKey: ['job', applicationId],
+    queryFn: () => jobs.get(applicationId!),
     enabled: !!applicationId,
   });
 
@@ -38,7 +39,7 @@ export function BuilderPage() {
   });
 
   const resumeData = existingResume || builtResume;
-  const isLoading = isLoadingExisting || isBuilding;
+  const isLoading = isLoadingExisting || isBuilding || isLoadingJob;
 
   // Mutation for updating resume
   const updateMutation = useMutation({
@@ -60,10 +61,12 @@ export function BuilderPage() {
     }
   }, [resumeData]);
 
-  if (!application) {
+  if (!job) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-muted-foreground">Loading application...</div>
+        <div className="text-center text-muted-foreground">
+          {isLoadingJob ? 'Loading job...' : 'Job not found'}
+        </div>
       </div>
     );
   }
@@ -77,8 +80,6 @@ export function BuilderPage() {
       </div>
     );
   }
-
-  const job = application.job;
 
   const handleEditSection = (section: string) => {
     setEditingSection(section);

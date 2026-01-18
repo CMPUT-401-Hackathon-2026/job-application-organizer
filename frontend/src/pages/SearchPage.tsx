@@ -126,7 +126,7 @@ export function SearchPage() {
         const app = await applications.create(jobToBuild.id, 'draft');
         // Invalidate queries to ensure list is updated when user comes back
         await queryClient.invalidateQueries({ queryKey: ['applications'] });
-        navigate(`/builder/${app.id}`);
+        navigate(`/builder/${jobToBuild.id}`);
       } catch {
         addToast('Failed to open resume builder', 'error');
       }

@@ -29,12 +29,10 @@ def frontend_index(_request):
 urlpatterns = [
     path('api/auth/', include('auth_app.urls')),
     path('api/profile/', include('profiles.urls')),
-
-    path('api/applications/', include('applications.urls')),
     path('api/resumes/', include('resumes.urls')),
-
-    # If JobApplication is legacy, give it a real prefix
     path('api/jobs/', include('JobApplication.urls')),
+    path('api/applications/', include('applications.urls')),
+    
 
     path('admin/', admin.site.urls),
     path('', frontend_index, name='frontend'),
