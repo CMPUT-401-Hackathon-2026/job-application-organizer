@@ -22,7 +22,7 @@ export function TrackPage() {
   });
 
   // Filter to only show applied applications (not drafts)
-  const appliedApps = appsList.filter((app) => app.stage === 'applied');
+  const appliedApps = appsList.filter((app) => app.stage !== 'draft');
 
   const { data: comms = [] } = useQuery({
     queryKey: ['communications', selectedApplication?.id],
