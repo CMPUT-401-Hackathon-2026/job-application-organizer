@@ -8,8 +8,8 @@ from resumes.models import Resume
 from resumes.latex import render_resume_to_latex
 import json
 import os
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+
 
 # Initialize Gemini client
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
