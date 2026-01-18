@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, Building2, Briefcase, Save, FileText } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { jobs, applications } from '../api';
+import { jobs, applications, resume} from '../api';
 import { useJobStore } from '../store/jobStore';
 import { useToastStore } from '../components/ui/Toast';
 import { JobCard } from '../components/JobCard';
@@ -103,35 +103,82 @@ export function SearchPage() {
       addToast('Failed to submit application', 'error');
     }
   };
+//   const handleBuild = async () => {
+//   const jobToBuild = selectedJob || selectedJobForDisplay;
+//   if (!jobToBuild) return;
 
-  const handleBuild = async () => {
-    const jobToBuild = selectedJob || selectedJobForDisplay;
-    if (!jobToBuild) return;
-    
-    // First, refresh the applications list to get the latest data
+//   try {
+//     // Ensure application exists
+//     let app = applicationsList.find((a) => a.jobId === jobToBuild.id);
+
+//     if (!app) {
+//       app = await applications.create(jobToBuild.id, 'Draft');
+//     }
+
+//     // BUILD RESUME HERE
+//     await resume.buildFromProfile(app.id, jobToBuild.description);
+
+//     // THEN navigate
+//     navigate(`/builder/${app.id}`);
+//   } catch (e) {
+//     addToast('Failed to build resume', 'error');
+//   }
+// };
+
+const handleBuild = async () => {
+  const jobToBuild = selectedJob || selectedJobForDisplay;
+  if (!jobToBuild) return;
+
+  try {
     await refetchApplications();
-    
-    // Get fresh applications list after refetch
     const freshApps = await applications.list();
-    
-    // Check if application already exists for this job
-    const existingApp = freshApps.find((app) => app.jobId === jobToBuild.id);
-    
-    if (existingApp) {
-      // Navigate to builder with existing application
-      navigate(`/builder/${existingApp.id}`);
-    } else {
-      // Create a draft application (not marked as Applied)
-      try {
-        const app = await applications.create(jobToBuild.id, 'Draft');
-        // Invalidate queries to ensure list is updated when user comes back
-        await queryClient.invalidateQueries({ queryKey: ['applications'] });
-        navigate(`/builder/${app.id}`);
-      } catch {
-        addToast('Failed to open resume builder', 'error');
-      }
+    let app = freshApps.find((a) => a.jobId === jobToBuild.id);
+
+    if (!app) {
+      app = await applications.create(jobToBuild.id, 'Draft');
+      await queryClient.invalidateQueries({ queryKey: ['applications'] });
     }
-  };
+
+    // This is the key call: profile + job desc => deepseek => resume JSON
+    await resume.buildFromProfile(app.id, jobToBuild.description);
+
+    navigate(`/builder/${app.id}`);
+  } catch (e) {
+    console.error(e);
+    addToast('Failed to build resume', 'error');
+  }
+};
+
+
+
+  // const handleBuild = async () => {
+  //   const jobToBuild = selectedJob || selectedJobForDisplay;
+  //   if (!jobToBuild) return;
+    
+  //   // First, refresh the applications list to get the latest data
+  //   await refetchApplications();
+    
+  //   // Get fresh applications list after refetch
+  //   const freshApps = await applications.list();
+    
+  //   // Check if application already exists for this job
+  //   const existingApp = freshApps.find((app) => app.jobId === jobToBuild.id);
+    
+  //   if (existingApp) {
+  //     // Navigate to builder with existing application
+  //     navigate(`/builder/${existingApp.id}`);
+  //   } else {
+  //     // Create a draft application (not marked as Applied)
+  //     try {
+  //       const app = await applications.create(jobToBuild.id, 'Draft');
+  //       // Invalidate queries to ensure list is updated when user comes back
+  //       await queryClient.invalidateQueries({ queryKey: ['applications'] });
+  //       navigate(`/builder/${app.id}`);
+  //     } catch {
+  //       addToast('Failed to open resume builder', 'error');
+  //     }
+  //   }
+  // };
 
   const isApplied = (jobId: string) => {
     return applicationsList.some((app) => app.jobId === jobId && app.status === 'Applied');

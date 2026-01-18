@@ -17,7 +17,7 @@ export interface Job {
 }
 
 export interface Application {
-  id: string;
+  id: number;
   jobId: string;
   job: Job;
   dateApplied: string;
@@ -75,8 +75,8 @@ export interface Link {
 }
 
 export interface Communication {
-  id: string;
-  applicationId: string;
+  id: number;
+  applicationId: number;
   date: string;
   type: 'email' | 'call' | 'message';
   from: string;

@@ -52,9 +52,18 @@ class ResumeGeneratorService:
         # Build skills section
         skills_text = self._format_skills(profile_data)
         
-        prompt = f"""You are an expert resume writer and career coach. Your task is to create a tailored, ATS-friendly resume based on the following information:
+        prompt = f"""
+You are an automated resume-structuring engine inside a production system.
 
-CANDIDATE PROFILE (Master Resume):
+Your task is to transform a master resume into a job-tailored structured resume object.
+
+You MUST follow all rules EXACTLY.
+
+======================
+INPUT DATA
+======================
+
+CANDIDATE PROFILE:
 Name: {name}
 Email: {email}
 
@@ -73,27 +82,102 @@ EDUCATION:
 JOB DESCRIPTION:
 {job_description}
 
-INSTRUCTIONS:
-1. Analyze the job description carefully and identify key requirements, skills, and qualifications
-2. Create a tailored resume that highlights the most relevant experience and skills
-3. Use keywords from the job description naturally throughout the resume
-4. Reorder and emphasize sections to match what the job requires most
-5. Keep bullet points concise and achievement-focused (use metrics where applicable)
-6. Ensure the resume is ATS-friendly with clear section headers
-7. Format the resume professionally with proper spacing and structure
-8. Only include information that exists in the candidate's profile - do not fabricate details
-9. If certain required skills are missing, emphasize transferable skills instead
+======================
+TASK
+======================
 
-OUTPUT FORMAT:
-Return ONLY the tailored resume in plain text format with clear section headers. Use this structure:
-- Header (Name, Email)
-- Summary (brief 2-3 sentence summary highlighting fit for this specific role)
-- Skills (prioritized based on job requirements)
-- Experience (reordered/emphasized based on relevance)
-- Projects (only include most relevant ones)
-- Education
+Analyze the job description and select, reorder, and emphasize the most relevant information from the candidate profile.
 
-Generate the tailored resume now:"""
+You are NOT allowed to invent any information.
+
+You must restructure the resume into a machine-readable JSON object.
+
+======================
+CRITICAL OUTPUT RULES
+======================
+
+YOU MUST RETURN VALID JSON ONLY.
+
+DO NOT:
+
+- Do NOT include explanations
+- Do NOT include markdown
+- Do NOT include backticks
+- Do NOT include comments
+- Do NOT include trailing commas
+- Do NOT include extra fields
+- Do NOT include natural language outside the JSON object
+
+If you break JSON format, the system will crash.
+
+======================
+REQUIRED JSON SCHEMA
+======================
+
+You MUST return exactly this JSON structure:
+
+{
+  "header": "Full Name | Email",
+  "summary": "2-3 sentence professional summary tailored to the job description",
+
+  "education": [
+    {
+      "id": "edu-1",
+      "school": "string",
+      "degree": "string",
+      "field": "string",
+      "startDate": "string",
+      "endDate": "string"
+    }
+  ],
+
+  "experience": [
+    {
+      "id": "exp-1",
+      "company": "string",
+      "position": "string",
+      "startDate": "string",
+      "endDate": "string",
+      "description": [
+        "Achievement-focused bullet using metrics where possible",
+        "Each bullet must be a single sentence"
+      ]
+    }
+  ],
+
+  "projects": [
+    {
+      "id": "proj-1",
+      "name": "string",
+      "description": "1-2 sentence description emphasizing relevance to the job"
+    }
+  ],
+
+  "techStack": ["tools, platforms, systems"],
+  "frameworks": ["frameworks only"],
+  "libraries": ["libraries only"],
+  "programmingLanguages": ["programming languages only"]
+}
+
+======================
+NORMALIZATION RULES
+======================
+
+1. Reorder experience and projects by relevance to the job
+2. Prioritize technical skills mentioned in the job description
+3. Use strong action verbs
+4. Do NOT repeat identical bullets
+5. IDs must be stable strings like "exp-1", "proj-2", etc.
+
+======================
+FINAL INSTRUCTION
+======================
+
+Return ONLY the JSON object.
+Nothing else.
+
+Begin.
+"""
         
         return prompt
     

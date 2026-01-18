@@ -70,6 +70,7 @@ export const auth = {
 
 // Profile API
 export const profile = {
+
   get: async (): Promise<Profile> => {
     try {
       return await apiFetch('/profile/'); // Ensure trailing slash
@@ -98,6 +99,9 @@ export const profile = {
         experience: [],
         projects: [],
         techStack: [],
+        frameworks: [], 
+        libraries: [],
+        programmingLanguages: [],
         links: [],
       };
     }
@@ -168,18 +172,18 @@ export const applications = {
       const job = mockJobs.find((j) => j.id === jobId);
       if (!job) throw new Error('Job not found');
       const newApp: Application = {
-        id: `app-${Date.now()}`,
+        id: Date.now(),  // TEMP numeric ID
         jobId,
         job,
         dateApplied: status === 'Applied' ? new Date().toISOString().split('T')[0] : '',
         status,
-      };
+        };
       mockApplications.push(newApp);
       return newApp;
     }
   },
 
-  updateStatus: async (id: string, status: ApplicationStatus): Promise<Application> => {
+  updateStatus: async (id: number, status: ApplicationStatus): Promise<Application> => {
     try {
       return await apiFetch(`/applications/${id}/status`, {
         method: 'PATCH',
@@ -299,57 +303,72 @@ export const applications = {
 //     }
 //   },
 // };
-export const resume = {
-  build: async (applicationId: string): Promise<Resume> => {
-    return apiFetch(`/applications/${applicationId}/resume/`);
-  },
+// export const resume = {
+//   // build: async (applicationId: string): Promise<Resume> => {
+//   //   return apiFetch(`/applications/${applicationId}/resume/`);
+//   // },
 
-  update: async (applicationId: string, data: Partial<Resume>): Promise<Resume> => {
-    return apiFetch(`/applications/${applicationId}/resume/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
+//   build: async (applicationId: string, jobDescription: string): Promise<Resume> => {
+//   return apiFetch(`/applications/${applicationId}/resume/build/`, {
+//     method: 'POST',
+//     body: JSON.stringify({ job_description: jobDescription }),
+//   });
+// },
+//   buildFromProfile: async (applicationId: string, jobDescription: string) => {
+//   return apiFetch(`/applications/${applicationId}/resume/build/`, {
+//     method: 'POST',
+//     body: JSON.stringify({ job_description: jobDescription }),
+//   });
+// },
 
-  atsScan: async (applicationId: string, jobDescription: string): Promise<ATSResult> => {
-    return apiFetch(`/applications/${applicationId}/resume/ats/`, {
-      method: 'POST',
-      body: JSON.stringify({ job_description: jobDescription }),
-    });
-  },
 
-  downloadLatex: async (applicationId: string): Promise<void> => {
-    const blob = await apiFetch<Blob>(
-      `/applications/${applicationId}/resume/latex/`,
-      { responseType: 'blob' }
-    );
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `resume-${applicationId}.tex`;
-    a.click();
-    URL.revokeObjectURL(url);
-  },
+//   update: async (applicationId: string, data: Partial<Resume>): Promise<Resume> => {
+//     return apiFetch(`/applications/${applicationId}/resume/`, {
+//       method: 'PATCH',
+//       body: JSON.stringify(data),
+//     });
+//   },
 
-  downloadPdf: async (applicationId: string): Promise<void> => {
-    const blob = await apiFetch<Blob>(
-      `/applications/${applicationId}/resume/pdf/`,
-      { responseType: 'blob' }
-    );
+//   atsScan: async (applicationId: string, jobDescription: string): Promise<ATSResult> => {
+//     return apiFetch(`/applications/${applicationId}/resume/ats/`, {
+//       method: 'POST',
+//       body: JSON.stringify({ job_description: jobDescription }),
+//     });
+//   },
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `resume-${applicationId}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-  },
-};
+//   downloadLatex: async (applicationId: string): Promise<void> => {
+//     const blob = await apiFetch<Blob>(
+//       `/applications/${applicationId}/resume/latex/`,
+//       { responseType: 'blob' }
+//     );
+
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `resume-${applicationId}.tex`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+//   },
+
+//   downloadPdf: async (applicationId: string): Promise<void> => {
+//     const blob = await apiFetch<Blob>(
+//       `/applications/${applicationId}/resume/pdf/`,
+//       { responseType: 'blob' }
+//     );
+
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `resume-${applicationId}.pdf`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+//   },
+// };
 
 // Communications API
 export const communications = {
-  list: async (applicationId: string): Promise<Communication[]> => {
+  list: async (applicationId: number): Promise<Communication[]> => {
     try {
       return await apiFetch(`/applications/${applicationId}/communications`);
     } catch {
@@ -357,7 +376,7 @@ export const communications = {
     }
   },
 
-  add: async (applicationId: string, data: Omit<Communication, 'id' | 'applicationId' | 'date'>): Promise<Communication> => {
+  add: async (applicationId: number, data: Omit<Communication, 'id' | 'applicationId' | 'date'>): Promise<Communication> => {
     try {
       return await apiFetch(`/applications/${applicationId}/communications`, {
         method: 'POST',
@@ -365,7 +384,7 @@ export const communications = {
       });
     } catch {
       const newComm: Communication = {
-        id: `comm-${Date.now()}`,
+        id: Date.now(),
         applicationId,
         date: new Date().toISOString().split('T')[0],
         ...data,
@@ -375,7 +394,7 @@ export const communications = {
     }
   },
 
-  generateReply: async (applicationId: string, context?: string): Promise<string> => {
+  generateReply: async (applicationId: number, context?: string): Promise<string> => {
     try {
       const result = await apiFetch<{ reply: string }>(`/applications/${applicationId}/communications/generate-reply`, {
         method: 'POST',
@@ -389,3 +408,36 @@ export const communications = {
     }
   },
 };
+export const resume = {
+  get: async (applicationId: number): Promise<Resume> => {
+    return apiFetch(`/applications/${applicationId}/resume/`);
+  },
+
+  buildFromProfile: async (applicationId: number, jobDescription: string): Promise<Resume> => {
+    return apiFetch(`/applications/${applicationId}/resume/build/`, {
+      method: 'POST',
+      body: JSON.stringify({ job_description: jobDescription }),
+    });
+  },
+
+  update: async (applicationId: number, data: Partial<Resume>): Promise<Resume> => {
+    return apiFetch(`/applications/${applicationId}/resume/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  downloadLatex: async (applicationId: number): Promise<void> => {
+    const blob = await apiFetch<Blob>(`/applications/${applicationId}/resume/latex/`, {
+      responseType: 'blob',
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resume-${applicationId}.tex`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+};
+

@@ -19,11 +19,29 @@ export function BuilderPage() {
     enabled: !!applicationId,
   });
 
-  const { data: resumeData, refetch } = useQuery({
-    queryKey: ['resume', applicationId],
-    queryFn: () => resume.build(applicationId!),
-    enabled: !!applicationId,
-  });
+  // const { data: resumeData, refetch } = useQuery({
+  //   queryKey: ['resume', applicationId],
+  //   queryFn: () => resume.build(applicationId!),
+  //   enabled: !!applicationId,
+  // });
+
+//   const {
+//   data: resumeData,
+//   refetch,
+//   isLoading: isResumeLoading,
+// } = useQuery({
+//   queryKey: ['resume', applicationId],
+//   queryFn: () => resume.get(applicationId!), // GET only
+//   enabled: !!applicationId,
+//   retry: false,
+// });
+const { data: resumeData, refetch } = useQuery({
+  queryKey: ['resume', applicationId],
+  queryFn: () => resume.get(applicationId!),
+  enabled: !!applicationId,
+});
+
+
 
   useEffect(() => {
     if (resumeData) {
