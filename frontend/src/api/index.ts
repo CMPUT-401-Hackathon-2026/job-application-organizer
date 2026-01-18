@@ -1,6 +1,5 @@
 import { apiFetch } from './client';
 
-
 import {
   mockJobs,
   mockApplications,
@@ -17,6 +16,7 @@ import type {
   Resume,
   ATSResult,
   ApplicationStatus,
+  ApplicationResponse,
 } from '../types';
 
 // Auth API
@@ -74,12 +74,12 @@ export const auth = {
 export const profile = {
   get: async (): Promise<Profile> => {
     try {
-      return await apiFetch('/profile/'); // Ensure trailing slash
+      return await apiFetch('/profile/');
     } catch {
       // Check localStorage for saved profile
       const savedProfile = localStorage.getItem('user_profile');
       const authUserStr = localStorage.getItem('auth_user');
-      
+
       if (savedProfile && authUserStr) {
         const profile = JSON.parse(savedProfile);
         const authUser = JSON.parse(authUserStr);
@@ -100,6 +100,9 @@ export const profile = {
         experience: [],
         projects: [],
         techStack: [],
+        frameworks: [],
+        libraries: [],
+        programmingLanguages: [],
         links: [],
       };
     }
@@ -107,7 +110,7 @@ export const profile = {
 
   save: async (data: Profile): Promise<Profile> => {
     try {
-      const saved = await apiFetch<Profile>('/profile/', { // Ensure trailing slash
+      const saved = await apiFetch<Profile>('/profile/', {
         method: 'PUT',
         body: JSON.stringify(data),
       });
@@ -146,7 +149,7 @@ export const jobs = {
   get: async (id: string): Promise<Job> => {
     try {
       // Fetch specific job from Django backend
-      const response = await apiFetch(`/jobs/${id}/`);
+      const response = await apiFetch<Job>(`/jobs/${id}/`);
       return response;
     } catch (error) {
       console.error('Failed to fetch job from backend:', error);
@@ -161,47 +164,58 @@ export const jobs = {
 export const applications = {
   list: async (): Promise<Application[]> => {
     try {
-      return await apiFetch('/applications');
+      return await apiFetch('/applications/');
     } catch {
       return mockApplications;
     }
   },
 
-  create: async (jobId: string, status: ApplicationStatus = 'applied'): Promise<Application> => {
+  create: async (job_id: string, stage: ApplicationStatus = 'applied'): Promise<Application> => {
     try {
-      return await apiFetch('/applications', {
+      const date_applied = stage === 'applied' ? new Date().toISOString().split('T')[0] : null;
+      const payload = { 
+        job_id: parseInt(job_id), // Convert to integer since Django expects int
+        stage: stage.toLowerCase(), // Ensure lowercase
+        date_applied 
+      };
+      console.log('Creating application with payload:', payload);
+      return await apiFetch('/applications/', {
         method: 'POST',
-        body: JSON.stringify({ jobId, status }),
+        body: JSON.stringify(payload),
       });
-    } catch {
-      const job = mockJobs.find((j) => j.id === jobId);
+    } catch (error) {
+      console.error('Failed to create application:', error);
+      const job = mockJobs.find((j) => j.id === job_id);
       if (!job) throw new Error('Job not found');
       const newApp: Application = {
         id: `app-${Date.now()}`,
-        jobId,
+        job_id,
         job,
-        dateApplied: status === 'applied' ? new Date().toISOString().split('T')[0] : '',
-        status,
+        date_applied: stage === 'applied' ? new Date().toISOString().split('T')[0] : '',
+        stage,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
       mockApplications.push(newApp);
       return newApp;
     }
   },
 
-  updateStatus: async (id: string, status: ApplicationStatus): Promise<Application> => {
+  updateStatus: async (id: string, stage: ApplicationStatus): Promise<Application> => {
     try {
-      return await apiFetch(`/applications/${id}/status`, {
+      return await apiFetch(`/applications/${id}/`, {
         method: 'PATCH',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ stage }),
       });
     } catch {
       const app = mockApplications.find((a) => a.id === id);
       if (!app) throw new Error('Application not found');
-      app.status = status;
-      // Set dateApplied when status changes to Applied
-      if (status === 'applied' && !app.dateApplied) {
-        app.dateApplied = new Date().toISOString().split('T')[0];
+      app.stage = stage;
+      // Set date_applied when stage changes to applied
+      if (stage === 'applied' && !app.date_applied) {
+        app.date_applied = new Date().toISOString().split('T')[0];
       }
+      app.updated_at = new Date().toISOString();
       return app;
     }
   },
@@ -253,12 +267,12 @@ export const resume = {
     try {
       return await apiFetch(`/resume/${applicationId}/ats-scan`);
     } catch {
-      const resume = mockResumes[applicationId];
+      const res = mockResumes[applicationId];
       const app = mockApplications.find((a) => a.id === applicationId);
       if (!app) throw new Error('Application not found');
 
-      const jobTags = app.job.tags.map((t) => t.toLowerCase());
-      const resumeTags = resume?.techStack.map((t) => t.toLowerCase()) || [];
+      const jobTags = app.job.tags?.map((t) => t.toLowerCase()) || [];
+      const resumeTags = res?.techStack.map((t) => t.toLowerCase()) || [];
       const missingKeywords = jobTags.filter((tag) => !resumeTags.some((rt) => rt.includes(tag) || tag.includes(rt)));
 
       const score = Math.max(0, Math.min(100, 100 - missingKeywords.length * 15));
@@ -283,19 +297,19 @@ export const resume = {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      const resume = mockResumes[applicationId];
-      if (!resume) throw new Error('Resume not found');
+      const res = mockResumes[applicationId];
+      if (!res) throw new Error('Resume not found');
 
       // Generate LaTeX content
       const latex = `\\documentclass[11pt,a4paper]{article}
 \\begin{document}
-${resume.header.split('\n').map((line) => `\\textbf{${line}}`).join(' \\\\\n')}
+${res.header.split('\n').map((line) => `\\textbf{${line}}`).join(' \\\\\n')}
 \\section*{Education}
-${resume.education.map((edu) => `\\textbf{${edu.school}} - ${edu.degree} in ${edu.field}`).join('\n')}
+${res.education.map((edu) => `\\textbf{${edu.school}} - ${edu.degree} in ${edu.field}`).join('\n')}
 \\section*{Experience}
-${resume.experience.map((exp) => `\\textbf{${exp.company}} - ${exp.position}`).join('\n')}
+${res.experience.map((exp) => `\\textbf{${exp.company}} - ${exp.position}`).join('\n')}
 \\section*{Skills}
-${resume.techStack.join(', ')}
+${res.techStack.join(', ')}
 \\end{document}`;
 
       const blob = new Blob([latex], { type: 'application/x-latex' });
@@ -309,40 +323,49 @@ ${resume.techStack.join(', ')}
   },
 };
 
-// Communications API
+// Communications API - Now using ApplicationResponse
 export const communications = {
-  list: async (applicationId: string): Promise<Communication[]> => {
+  list: async (applicationId: string): Promise<ApplicationResponse[]> => {
     try {
-      return await apiFetch(`/applications/${applicationId}/communications`);
+      return await apiFetch(`/applications/${applicationId}/responses/`);
     } catch {
-      return mockCommunications.filter((c) => c.applicationId === applicationId);
+      // Return empty array if backend fails
+      return [];
     }
   },
 
-  add: async (applicationId: string, data: Omit<Communication, 'id' | 'applicationId' | 'date'>): Promise<Communication> => {
+  add: async (
+    applicationId: string,
+    data: Omit<ApplicationResponse, 'id' | 'received_at'>
+  ): Promise<ApplicationResponse> => {
     try {
-      return await apiFetch(`/applications/${applicationId}/communications`, {
+      return await apiFetch(`/applications/${applicationId}/responses/`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     } catch {
-      const newComm: Communication = {
-        id: `comm-${Date.now()}`,
-        applicationId,
-        date: new Date().toISOString().split('T')[0],
-        ...data,
+      const newResponse: ApplicationResponse = {
+        id: `resp-${Date.now()}`,
+        application_id: applicationId,
+        response_type: data.response_type,
+        received_at: new Date().toISOString(),
+        summary: data.summary,
+        details: data.details,
+        contact: data.contact,
       };
-      mockCommunications.push(newComm);
-      return newComm;
+      return newResponse;
     }
   },
 
   generateReply: async (applicationId: string, context?: string): Promise<string> => {
     try {
-      const result = await apiFetch<{ reply: string }>(`/applications/${applicationId}/communications/generate-reply`, {
-        method: 'POST',
-        body: JSON.stringify({ context }),
-      });
+      const result = await apiFetch<{ reply: string }>(
+        `/applications/${applicationId}/responses/generate-reply`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ context }),
+        }
+      );
       return result.reply;
     } catch {
       // Mock reply generation

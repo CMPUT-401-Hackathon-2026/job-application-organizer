@@ -22,7 +22,7 @@ export function TrackPage() {
   });
 
   // Filter to only show applied applications (not drafts)
-  const appliedApps = appsList.filter((app) => app.status === 'applied');
+  const appliedApps = appsList.filter((app) => app.stage === 'applied');
 
   const { data: comms = [] } = useQuery({
     queryKey: ['communications', selectedApplication?.id],
@@ -30,9 +30,9 @@ export function TrackPage() {
     enabled: !!selectedApplication?.id,
   });
 
-  const handleStatusChange = async (appId: string, status: ApplicationStatus) => {
+  const handleStatusChange = async (appId: string, stage: ApplicationStatus) => {
     try {
-      await applications.updateStatus(appId, status);
+      await applications.updateStatus(appId, stage);
       addToast('Status updated successfully', 'success');
       refetch();
     } catch {
@@ -105,12 +105,12 @@ export function TrackPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar size={14} />
-                      {app.dateApplied}
+                      {app.date_applied}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <select
-                      value={app.status}
+                      value={app.stage}
                       onChange={(e) =>
                         handleStatusChange(app.id, e.target.value as ApplicationStatus)
                       }
@@ -164,26 +164,26 @@ export function TrackPage() {
                   <h3 className="font-semibold text-lg">{app.job.title}</h3>
                   <p className="text-muted-foreground">{app.job.company}</p>
                 </div>
-                <StatusPill status={app.status} />
+                <StatusPill status={app.stage} />
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                 <Calendar size={14} />
-                <span>Applied {app.dateApplied}</span>
+                <span>Applied {app.date_applied}</span>
               </div>
               <div className="flex items-center gap-2 mb-3">
                 <select
-                  value={app.status}
+                  value={app.stage}
                   onChange={(e) =>
                     handleStatusChange(app.id, e.target.value as ApplicationStatus)
                   }
                   className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                      <option value="draft">Draft</option>
-                      <option value="applied">Applied</option>
-                      <option value="interview">Interview</option>
-                      <option value="offer">Offer</option>
-                      <option value="rejection">Rejection</option>
-                      <option value="withdrawn">Withdrawn</option>
+                  <option value="draft">Draft</option>
+                  <option value="applied">Applied</option>
+                  <option value="interview">Interview</option>
+                  <option value="offer">Offer</option>
+                  <option value="rejection">Rejection</option>
+                  <option value="withdrawn">Withdrawn</option>
                 </select>
               </div>
               <div className="flex gap-2">
@@ -245,13 +245,13 @@ export function TrackPage() {
                 comms.map((comm) => (
                   <div key={comm.id} className="p-4 bg-muted/30 rounded-lg border border-border">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{comm.subject}</span>
-                      <span className="text-xs text-muted-foreground">{comm.date}</span>
+                      <span className="text-sm font-medium">{comm.summary}</span>
+                      <span className="text-xs text-muted-foreground">{comm.received_at}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">
-                      From: {comm.from} → To: {comm.to}
+                      Type: {comm.response_type} {comm.contact && `| Contact: ${comm.contact}`}
                     </p>
-                    <p className="text-sm whitespace-pre-wrap">{comm.body}</p>
+                    <p className="text-sm whitespace-pre-wrap">{comm.details}</p>
                   </div>
                 ))
               )}

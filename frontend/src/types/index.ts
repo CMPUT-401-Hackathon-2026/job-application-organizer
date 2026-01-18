@@ -6,24 +6,24 @@ export interface User {
 }
 
 export interface Job {
-  id: number;
+  id: string; // Changed from number to string
   title: string;
   company: string;
   location: string;
   description: string;
-  salary_min?: number;
-  salary_max?: number;
-  tech_stack?: string[];
-  date?: string;
+  salary?: string; // Changed: single formatted string from backend
+  tags?: string[]; // Changed from tech_stack
+  postedDate?: string; // Changed from date
 }
 
 export interface Application {
   id: string;
-  jobId: string;
-  job: Job;
-  dateApplied: string;
-  status: ApplicationStatus;
-  notes?: string;
+  job_id: string; // Changed from jobId (matches Django naming)
+  job: Job; // This is the actual Job object
+  date_applied: string; // Changed from dateApplied
+  stage: ApplicationStatus; // Changed from status (matches Django)
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type ApplicationStatus =
@@ -34,6 +34,26 @@ export type ApplicationStatus =
   | 'rejection'
   | 'withdrawn';
 
+export interface ApplicationResponse {
+  id: string;
+  application_id: string;
+  response_type: 'email' | 'call' | 'interview' | 'offer' | 'rejection' | 'note';
+  received_at: string;
+  summary: string;
+  details: string;
+  contact?: string;
+}
+
+export interface Communication {
+  id: string;
+  applicationId: string;
+  date: string;
+  type: 'email' | 'call' | 'message';
+  from?: string;
+  to?: string;
+  subject?: string;
+  body?: string;
+}
 
 export interface Profile {
   id: string;
@@ -80,17 +100,6 @@ export interface Link {
   id: string;
   label: string;
   url: string;
-}
-
-export interface Communication {
-  id: string;
-  applicationId: string;
-  date: string;
-  type: 'email' | 'call' | 'message';
-  from: string;
-  to: string;
-  subject: string;
-  body: string;
 }
 
 export interface Resume {
