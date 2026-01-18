@@ -1,61 +1,127 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Edit2, Check, X, FileDown, Scan, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { resume, applications } from '../api';
+import { Edit2, Check, X, FileDown, Scan, Download } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { resume, jobs } from '../api';
 import { useToastStore } from '../components/ui/Toast';
-import { ATSScoreCard } from '../components/ATSScoreCard';
 import type { Resume } from '../types';
+
+function isResumeComplete(resumeData: any): boolean {
+  // Check if resume has all the required fields
+  return !!(
+    resumeData?.header &&
+    resumeData?.education &&
+    resumeData?.experience &&
+    Array.isArray(resumeData.education) &&
+    Array.isArray(resumeData.experience)
+  );
+}
 
 export function BuilderPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const { addToast } = useToastStore();
+  const queryClient = useQueryClient();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Partial<Resume>>({});
+  const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [atsDetails, setAtsDetails] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
-  const { data: application } = useQuery({
-    queryKey: ['application', applicationId],
-    queryFn: () => applications.list().then((apps) => apps.find((a) => a.id === applicationId)),
+  // Load the JOB details (not application)
+  const { data: job, isLoading: isLoadingJob } = useQuery({
+    queryKey: ['job', applicationId],
+    queryFn: () => jobs.get(applicationId!),
     enabled: !!applicationId,
   });
 
-  const { data: resumeData, refetch } = useQuery({
+  // First try to get existing resume
+  const { data: existingResume, isLoading: isLoadingExisting, error: existingError } = useQuery({
     queryKey: ['resume', applicationId],
-    queryFn: () => resume.build(applicationId!),
+    queryFn: () => resume.get(applicationId!),
     enabled: !!applicationId,
+    retry: false,
+  });
+
+  // Check if existing resume is incomplete
+  const needsRebuild = existingResume && !isResumeComplete(existingResume);
+
+  // If no resume exists OR resume is incomplete, build one
+  const { data: builtResume, isLoading: isBuilding } = useQuery({
+    queryKey: ['resume-build', applicationId],
+    queryFn: async () => {
+      console.log('Building resume...');
+      const result = await resume.build(applicationId!);
+      console.log('Build result:', result);
+      return result;
+    },
+    enabled: !!applicationId && (!existingResume || needsRebuild) && !isLoadingExisting,
+  });
+
+  const resumeData = (needsRebuild ? builtResume : existingResume) || builtResume;
+  const isLoading = isLoadingExisting || isBuilding || isLoadingJob;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('BuilderPage state:', {
+      applicationId,
+      hasJob: !!job,
+      existingResume,
+      needsRebuild,
+      builtResume,
+      resumeData,
+      isLoading,
+      isBuilding,
+    });
+  }, [applicationId, job, existingResume, needsRebuild, builtResume, resumeData, isLoading, isBuilding]);
+
+  // Mutation for updating resume
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<Resume>) => resume.update(applicationId!, data),
+    onSuccess: (updatedResume) => {
+      addToast('Resume updated successfully', 'success');
+      setEditingSection(null);
+      // Update the cache with the new data
+      queryClient.setQueryData(['resume', applicationId], updatedResume);
+    },
+    onError: () => {
+      addToast('Failed to update resume', 'error');
+    },
   });
 
   useEffect(() => {
-    if (resumeData) {
+    if (resumeData && isResumeComplete(resumeData)) {
       setEditedContent(resumeData);
     }
   }, [resumeData]);
 
-  if (!application || !resumeData) {
+  if (!job) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-muted-foreground">Loading resume...</div>
+        <div className="text-center text-muted-foreground">
+          {isLoadingJob ? 'Loading job...' : 'Job not found'}
+        </div>
       </div>
     );
   }
 
-  const job = application.job;
-  const jobKeywords = job.tags;
+  if (isLoading || !resumeData || !isResumeComplete(resumeData)) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-muted-foreground">
+          {isBuilding ? 'Building your tailored resume...' : 'Loading resume...'}
+          {needsRebuild && <p className="text-xs mt-2">Incomplete resume detected, rebuilding...</p>}
+        </div>
+      </div>
+    );
+  }
 
   const handleEditSection = (section: string) => {
     setEditingSection(section);
   };
 
   const handleSaveSection = async () => {
-    if (!applicationId || !editingSection) return;
-    try {
-      await resume.update(applicationId, editedContent);
-      addToast('Resume updated successfully', 'success');
-      setEditingSection(null);
-      refetch();
-    } catch {
-      addToast('Failed to update resume', 'error');
-    }
+    if (!editingSection) return;
+    await updateMutation.mutateAsync(editedContent);
   };
 
   const handleCancelEdit = () => {
@@ -65,7 +131,19 @@ export function BuilderPage() {
 
   const handleATSScan = async () => {
     if (!applicationId) return;
-    // ATS scan is handled by ATSScoreCard component
+    
+    setIsScanning(true);
+    try {
+      const result = await resume.atsScan(applicationId);
+      setAtsScore(result.score);
+      setAtsDetails(result);
+      addToast(`ATS Score: ${result.score}/100`, 'success');
+    } catch (error) {
+      addToast('Failed to perform ATS scan', 'error');
+      console.error('ATS scan error:', error);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleDownloadLatex = async () => {
@@ -75,6 +153,16 @@ export function BuilderPage() {
       addToast('LaTeX file downloaded', 'success');
     } catch {
       addToast('Failed to download LaTeX file', 'error');
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!applicationId) return;
+    try {
+      await resume.downloadPdf(applicationId);
+      addToast('PDF downloaded successfully', 'success');
+    } catch (error: any) {
+      addToast(error?.message || 'Failed to download PDF', 'error');
     }
   };
 
@@ -132,6 +220,48 @@ export function BuilderPage() {
                 </div>
               )}
             </section>
+
+            {/* Summary Section */}
+            {currentData.summary && (
+              <section className="mb-6 pb-6 border-b border-border">
+                {editingSection === 'summary' ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={currentData.summary || ''}
+                      onChange={(e) =>
+                        setEditedContent({ ...editedContent, summary: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      rows={3}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveSection}
+                        className="p-2 bg-primary text-primary-foreground rounded-md hover:opacity-90"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="p-2 border border-border rounded-md hover:bg-muted"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <p className="text-sm text-muted-foreground">{currentData.summary}</p>
+                    <button
+                      onClick={() => handleEditSection('summary')}
+                      className="p-2 hover:bg-muted rounded-md transition-colors"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Education Section */}
             <section className="mb-6">
@@ -269,7 +399,7 @@ export function BuilderPage() {
                         }}
                         className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                         rows={4}
-                        placeholder="One bullet per line (press Enter for new line)"
+                        placeholder="One bullet per line"
                       />
                     </div>
                   ))}
@@ -306,160 +436,198 @@ export function BuilderPage() {
             </section>
 
             {/* Projects Section */}
-            <section className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">Projects</h2>
-                {editingSection !== 'projects' && (
-                  <button
-                    onClick={() => handleEditSection('projects')}
-                    className="p-2 hover:bg-muted rounded-md transition-colors"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                )}
-              </div>
-              {editingSection === 'projects' ? (
-                <div className="space-y-3">
-                  {currentData.projects?.map((proj, index) => (
-                    <div key={proj.id} className="space-y-2">
-                      <input
-                        type="text"
-                        value={proj.name}
-                        onChange={(e) => {
-                          const newProjects = [...(currentData.projects || [])];
-                          newProjects[index] = { ...proj, name: e.target.value };
-                          setEditedContent({ ...editedContent, projects: newProjects });
-                        }}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Project name"
-                      />
-                      <textarea
-                        value={proj.description}
-                        onChange={(e) => {
-                          const newProjects = [...(currentData.projects || [])];
-                          newProjects[index] = { ...proj, description: e.target.value };
-                          setEditedContent({ ...editedContent, projects: newProjects });
-                        }}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                        rows={4}
-                        placeholder="Description (press Enter for new line)"
-                      />
+            {currentData.projects && currentData.projects.length > 0 && (
+              <section className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold">Projects</h2>
+                  {editingSection !== 'projects' && (
+                    <button
+                      onClick={() => handleEditSection('projects')}
+                      className="p-2 hover:bg-muted rounded-md transition-colors"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  )}
+                </div>
+                {editingSection === 'projects' ? (
+                  <div className="space-y-3">
+                    {currentData.projects?.map((proj, index) => (
+                      <div key={proj.id} className="space-y-2 p-2 border border-border rounded-md">
+                        <input
+                          type="text"
+                          value={proj.name}
+                          onChange={(e) => {
+                            const newProjects = [...(currentData.projects || [])];
+                            newProjects[index] = { ...proj, name: e.target.value };
+                            setEditedContent({ ...editedContent, projects: newProjects });
+                          }}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="Project name"
+                        />
+                        <textarea
+                          value={proj.description}
+                          onChange={(e) => {
+                            const newProjects = [...(currentData.projects || [])];
+                            newProjects[index] = { ...proj, description: e.target.value };
+                            setEditedContent({ ...editedContent, projects: newProjects });
+                          }}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                          rows={3}
+                          placeholder="Description"
+                        />
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveSection}
+                        className="p-2 bg-primary text-primary-foreground rounded-md hover:opacity-90"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="p-2 border border-border rounded-md hover:bg-muted"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveSection}
-                      className="p-2 bg-primary text-primary-foreground rounded-md hover:opacity-90"
-                    >
-                      <Check size={16} />
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="p-2 border border-border rounded-md hover:bg-muted"
-                    >
-                      <X size={16} />
-                    </button>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {currentData.projects?.map((proj) => (
-                    <div key={proj.id} className="text-sm">
-                      <p className="font-semibold">{proj.name}</p>
-                      <p className="text-muted-foreground">{proj.description}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+                ) : (
+                  <div className="space-y-2">
+                    {currentData.projects?.map((proj) => (
+                      <div key={proj.id} className="text-sm">
+                        <p className="font-semibold">{proj.name}</p>
+                        <p className="text-muted-foreground">{proj.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
-            {/* Tech Stack Section */}
+            {/* Technical Skills */}
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">Technical Skills</h2>
-                {editingSection !== 'techStack' && (
-                  <button
-                    onClick={() => handleEditSection('techStack')}
-                    className="p-2 hover:bg-muted rounded-md transition-colors"
-                  >
-                    <Edit2 size={16} />
-                  </button>
+              <h2 className="text-lg font-semibold mb-3">Technical Skills</h2>
+              <div className="space-y-2 text-sm">
+                {currentData.programmingLanguages && currentData.programmingLanguages.length > 0 && (
+                  <p>
+                    <span className="font-semibold">Languages:</span>{' '}
+                    {currentData.programmingLanguages.join(', ')}
+                  </p>
+                )}
+                {currentData.frameworks && currentData.frameworks.length > 0 && (
+                  <p>
+                    <span className="font-semibold">Frameworks:</span>{' '}
+                    {currentData.frameworks.join(', ')}
+                  </p>
+                )}
+                {currentData.libraries && currentData.libraries.length > 0 && (
+                  <p>
+                    <span className="font-semibold">Libraries:</span>{' '}
+                    {currentData.libraries.join(', ')}
+                  </p>
+                )}
+                {currentData.techStack && currentData.techStack.length > 0 && (
+                  <p>
+                    <span className="font-semibold">Tools:</span>{' '}
+                    {currentData.techStack.join(', ')}
+                  </p>
                 )}
               </div>
-              {editingSection === 'techStack' ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={currentData.techStack?.join(', ') || ''}
-                    onChange={(e) =>
-                      setEditedContent({
-                        ...editedContent,
-                        techStack: e.target.value.split(',').map((t) => t.trim()),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Comma separated"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveSection}
-                      className="p-2 bg-primary text-primary-foreground rounded-md hover:opacity-90"
-                    >
-                      <Check size={16} />
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="p-2 border border-border rounded-md hover:bg-muted"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{currentData.techStack?.join(', ')}</p>
-              )}
             </section>
           </div>
 
-          <div className="mt-4 flex gap-3">
+          {/* Action Buttons */}
+          <div className="mt-4 grid grid-cols-3 gap-3">
             <button
               onClick={handleATSScan}
-              className="flex-1 bg-secondary text-secondary-foreground py-3 rounded-md font-medium hover:bg-secondary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center gap-2"
+              disabled={isScanning}
+              className="bg-secondary text-secondary-foreground py-3 rounded-md font-medium hover:bg-secondary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Scan size={20} />
-              ATS Scan
+              {isScanning ? 'Scanning...' : 'ATS Scan'}
             </button>
             <button
               onClick={handleDownloadLatex}
-              className="flex-1 border border-border bg-background py-3 rounded-md font-medium hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center gap-2"
+              className="border border-border bg-background py-3 rounded-md font-medium hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center gap-2"
             >
               <FileDown size={20} />
-              Download LaTeX
+              LaTeX
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              className="bg-primary text-primary-foreground py-3 rounded-md font-medium hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center gap-2"
+            >
+              <Download size={20} />
+              PDF
             </button>
           </div>
         </div>
 
-        {/* Side Panel - Job Keywords */}
+        {/* Side Panel - ATS Results */}
         <div className="lg:col-span-1">
-        <div className="bg-card border border-border rounded-lg p-4 sticky top-4">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertCircle size={20} className="text-primary" />
-            <h3 className="font-semibold">Job Keywords</h3>
-          </div>
-          <div className="space-y-2">
-            {(jobKeywords || []).map((keyword) => (
-              <span
-                key={keyword}
-                className="inline-block px-2 py-1 text-xs bg-muted rounded-md text-muted-foreground"
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
+          {atsScore !== null && atsDetails && (
+            <div className="bg-card border border-border rounded-lg p-4 sticky top-4">
+              <h3 className="font-semibold mb-4">ATS Analysis</h3>
+              
+              <div className="mb-4">
+                <div className="text-3xl font-bold text-primary mb-1">
+                  {atsScore}/100
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all"
+                    style={{ width: `${atsScore}%` }}
+                  />
+                </div>
+              </div>
+
+              {atsDetails.matched_keywords && atsDetails.matched_keywords.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold mb-2">Matched Keywords</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {atsDetails.matched_keywords.slice(0, 10).map((kw: string, i: number) => (
+                      <span
+                        key={i}
+                        className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {atsDetails.missing_keywords && atsDetails.missing_keywords.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold mb-2">Missing Keywords</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {atsDetails.missing_keywords.slice(0, 10).map((kw: string, i: number) => (
+                      <span
+                        key={i}
+                        className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 rounded"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {atsDetails.improvements && atsDetails.improvements.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Suggestions</h4>
+                  <ul className="text-xs space-y-1 text-muted-foreground">
+                    {atsDetails.improvements.slice(0, 5).map((suggestion: string, i: number) => (
+                      <li key={i}>• {suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <ATSScoreCard applicationId={applicationId!} />
       </div>
       </div>
-    </div>
   );
 }

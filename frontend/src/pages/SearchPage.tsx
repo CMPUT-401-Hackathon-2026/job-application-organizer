@@ -114,7 +114,7 @@ export function SearchPage() {
     const freshApps = await applications.list();
     
     // Check if application already exists for this job
-    const existingApp = freshApps.find((app) => String(app.job?.id) === jobToBuild.id);
+    const existingApp = freshApps.find((app) => app.job_id === jobToBuild.id);
     
     if (existingApp) {
       // Navigate to builder with existing application
@@ -125,7 +125,7 @@ export function SearchPage() {
         const app = await applications.create(jobToBuild.id, 'draft');
         // Invalidate queries to ensure list is updated when user comes back
         await queryClient.invalidateQueries({ queryKey: ['applications'] });
-        navigate(`/builder/${app.id}`);
+        navigate(`/builder/${jobToBuild.id}`);
       } catch {
         addToast('Failed to open resume builder', 'error');
       }

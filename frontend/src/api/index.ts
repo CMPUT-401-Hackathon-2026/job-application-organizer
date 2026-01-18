@@ -28,7 +28,6 @@ export const auth = {
         body: JSON.stringify({ email, password }),
       });
     } catch {
-      // Mock fallback
       return {
         token: 'mock-token-' + Date.now(),
         user: mockUser,
@@ -43,7 +42,6 @@ export const auth = {
         body: JSON.stringify({ email, name, password }),
       });
     } catch {
-      // Mock fallback - create a user with the provided email and name
       return {
         token: 'mock-token-' + Date.now(),
         user: {
@@ -76,22 +74,18 @@ export const profile = {
     try {
       return await apiFetch('/profile/');
     } catch {
-      // Check localStorage for saved profile
       const savedProfile = localStorage.getItem('user_profile');
       const authUserStr = localStorage.getItem('auth_user');
 
       if (savedProfile && authUserStr) {
         const profile = JSON.parse(savedProfile);
         const authUser = JSON.parse(authUserStr);
-        // Only return saved profile if it belongs to current user
         if (profile.email === authUser.email) {
           return profile;
         } else {
-          // Clear profile if it belongs to different user
           localStorage.removeItem('user_profile');
         }
       }
-      // Return empty profile for new users
       return {
         id: '',
         name: '',
@@ -114,11 +108,9 @@ export const profile = {
         method: 'PUT',
         body: JSON.stringify(data),
       });
-      // Store in localStorage for mock fallback
       localStorage.setItem('user_profile', JSON.stringify(saved));
       return saved;
     } catch {
-      // Store in localStorage for mock fallback
       localStorage.setItem('user_profile', JSON.stringify(data));
       return data;
     }
@@ -129,13 +121,10 @@ export const profile = {
 export const jobs = {
   search: async (query: string): Promise<Job[]> => {
     try {
-      // Fetch from Django backend
       const response = await apiFetch(`/jobs/?q=${encodeURIComponent(query)}`);
-      // Make sure it returns an array
       return Array.isArray(response) ? response : [];
     } catch (error) {
       console.error('Failed to fetch jobs from backend:', error);
-      // fallback to mockJobs if backend fails
       const lowerQuery = query.toLowerCase();
       return mockJobs.filter(
         (job) =>
@@ -148,7 +137,6 @@ export const jobs = {
 
   get: async (id: string): Promise<Job> => {
     try {
-      // Fetch specific job from Django backend
       const response = await apiFetch<Job>(`/jobs/${id}/`);
       return response;
     } catch (error) {
@@ -174,8 +162,8 @@ export const applications = {
     try {
       const date_applied = stage === 'applied' ? new Date().toISOString().split('T')[0] : null;
       const payload = { 
-        job_id: parseInt(job_id), // Convert to integer since Django expects int
-        stage: stage.toLowerCase(), // Ensure lowercase
+        job_id: parseInt(job_id),
+        stage: stage.toLowerCase(),
         date_applied 
       };
       console.log('Creating application with payload:', payload);
@@ -209,9 +197,8 @@ export const applications = {
       });
     } catch {
       const app = mockApplications.find((a) => a.id === id);
-      if (!app) throw new Error('Application not found');
+      if (!app) throw new Error('Application not found'); 
       app.stage = stage;
-      // Set date_applied when stage changes to applied
       if (stage === 'applied' && !app.date_applied) {
         app.date_applied = new Date().toISOString().split('T')[0];
       }
@@ -223,113 +210,92 @@ export const applications = {
 
 // Resume API
 export const resume = {
+  get: async (applicationId: string): Promise<Resume> => {
+    try {
+      return await apiFetch(`/resumes/${applicationId}/resume/`);
+    } catch (error) {
+      console.error('Failed to fetch resume:', error);
+      throw error;
+    }
+  },
+
   build: async (applicationId: string): Promise<Resume> => {
     try {
-      return await apiFetch(`/resume/build`, {
+      return await apiFetch(`/resumes/${applicationId}/resume/build/`, {
         method: 'POST',
-        body: JSON.stringify({ applicationId }),
       });
-    } catch {
-      if (!mockResumes[applicationId]) {
-        const app = mockApplications.find((a) => a.id === applicationId);
-        if (!app) throw new Error('Application not found');
-        mockResumes[applicationId] = {
-          id: `resume-${applicationId}`,
-          applicationId,
-          header: mockProfile.name + '\n' + mockProfile.email,
-          education: mockProfile.education,
-          experience: mockProfile.experience,
-          projects: mockProfile.projects,
-          techStack: mockProfile.techStack,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        };
-      }
-      return mockResumes[applicationId];
+    } catch (error) {
+      console.error('Failed to build resume:', error);
+      throw error;
     }
   },
 
   update: async (applicationId: string, data: Partial<Resume>): Promise<Resume> => {
     try {
-      return await apiFetch(`/resume/${applicationId}`, {
+      return await apiFetch(`/resumes/${applicationId}/resume/`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
-    } catch {
-      if (!mockResumes[applicationId]) {
-        await resume.build(applicationId);
-      }
-      mockResumes[applicationId] = { ...mockResumes[applicationId]!, ...data };
-      return mockResumes[applicationId]!;
+    } catch (error) {
+      console.error('Failed to update resume:', error);
+      throw error;
     }
   },
 
   atsScan: async (applicationId: string): Promise<ATSResult> => {
     try {
-      return await apiFetch(`/resume/${applicationId}/ats-scan`);
-    } catch {
-      const res = mockResumes[applicationId];
-      const app = mockApplications.find((a) => a.id === applicationId);
-      if (!app) throw new Error('Application not found');
-
-      const jobTags = app.job.tags?.map((t) => t.toLowerCase()) || [];
-      const resumeTags = res?.techStack.map((t) => t.toLowerCase()) || [];
-      const missingKeywords = jobTags.filter((tag) => !resumeTags.some((rt) => rt.includes(tag) || tag.includes(rt)));
-
-      const score = Math.max(0, Math.min(100, 100 - missingKeywords.length * 15));
-
-      return {
-        score,
-        missingKeywords,
-        suggestions: missingKeywords.slice(0, 5),
-      };
+      return await apiFetch(`/resumes/${applicationId}/resume/ats-scan/`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Failed to perform ATS scan:', error);
+      throw error;
     }
   },
 
   downloadLatex: async (applicationId: string): Promise<void> => {
     try {
-      const blob = await apiFetch<Blob>(`/resume/${applicationId}/latex`, {
-        headers: { Accept: 'application/x-latex' },
+      const blob = await apiFetch<Blob>(`/resumes/${applicationId}/resume/latex/`, {
+        responseType: 'blob',
       });
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `resume-${applicationId}.tex`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      const res = mockResumes[applicationId];
-      if (!res) throw new Error('Resume not found');
+    } catch (error) {
+      console.error('Failed to download LaTeX:', error);
+      throw error;
+    }
+  },
 
-      // Generate LaTeX content
-      const latex = `\\documentclass[11pt,a4paper]{article}
-\\begin{document}
-${res.header.split('\n').map((line) => `\\textbf{${line}}`).join(' \\\\\n')}
-\\section*{Education}
-${res.education.map((edu) => `\\textbf{${edu.school}} - ${edu.degree} in ${edu.field}`).join('\n')}
-\\section*{Experience}
-${res.experience.map((exp) => `\\textbf{${exp.company}} - ${exp.position}`).join('\n')}
-\\section*{Skills}
-${res.techStack.join(', ')}
-\\end{document}`;
+  downloadPdf: async (applicationId: string): Promise<void> => {
+    try {
+      const blob = await apiFetch<Blob>(`/resumes/${applicationId}/resume/pdf/`, {
+        responseType: 'blob',
+      });
 
-      const blob = new Blob([latex], { type: 'application/x-latex' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `resume-${applicationId}.tex`;
+      a.download = `resume-${applicationId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      throw error;
     }
   },
 };
 
-// Communications API - Now using ApplicationResponse
+// Communications API
 export const communications = {
   list: async (applicationId: string): Promise<ApplicationResponse[]> => {
     try {
       return await apiFetch(`/applications/${applicationId}/responses/`);
     } catch {
-      // Return empty array if backend fails
       return [];
     }
   },
@@ -368,9 +334,8 @@ export const communications = {
       );
       return result.reply;
     } catch {
-      // Mock reply generation
       const app = mockApplications.find((a) => a.id === applicationId);
       return `Thank you for reaching out regarding the ${app?.job.title || 'position'} at ${app?.job.company || 'your company'}. I am very interested in this opportunity and would be happy to discuss how my skills and experience align with your needs. Please let me know when would be a convenient time to connect. Best regards, John Doe`;
     }
   },
-};
+}

@@ -110,6 +110,10 @@ export interface Resume {
   experience: Experience[];
   projects: Project[];
   techStack: string[];
+  frameworks: string[];
+  libraries: string[];
+  programmingLanguages: string[];
+summary?: string;
   lastUpdated: string;
 }
 
