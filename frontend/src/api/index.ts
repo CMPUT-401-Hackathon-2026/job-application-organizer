@@ -124,23 +124,30 @@ export const profile = {
 export const jobs = {
   search: async (query: string): Promise<Job[]> => {
     try {
-      return await apiFetch(`/jobs/search?q=${encodeURIComponent(query)}`);
-    } catch {
+      // Fetch from Django backend
+      const response = await apiFetch(`/jobs/?q=${encodeURIComponent(query)}`);
+      // Make sure it returns an array
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Failed to fetch jobs from backend:', error);
+      // fallback to mockJobs if backend fails
       const lowerQuery = query.toLowerCase();
       return mockJobs.filter(
         (job) =>
           job.title.toLowerCase().includes(lowerQuery) ||
           job.company.toLowerCase().includes(lowerQuery) ||
-          job.description.toLowerCase().includes(lowerQuery) ||
-          job.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))
+          job.description.toLowerCase().includes(lowerQuery)
       );
     }
   },
 
   get: async (id: string): Promise<Job> => {
     try {
-      return await apiFetch(`/jobs/${id}`);
-    } catch {
+      // Fetch specific job from Django backend
+      const response = await apiFetch(`/jobs/${id}/`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch job from backend:', error);
       const job = mockJobs.find((j) => j.id === id);
       if (!job) throw new Error('Job not found');
       return job;

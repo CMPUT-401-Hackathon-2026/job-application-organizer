@@ -6,15 +6,17 @@ export interface User {
 }
 
 export interface Job {
-  id: string;
+  id: number;
   title: string;
   company: string;
   location: string;
   description: string;
-  tags: string[];
-  salary?: string;
-  postedDate: string;
+  salary_min?: number;
+  salary_max?: number;
+  tech_stack?: string[];
+  date?: string;
 }
+
 
 export interface Application {
   id: string;
