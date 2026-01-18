@@ -31,7 +31,7 @@ urlpatterns = [
     path('api/auth/', include('auth_app.urls')),
     path('api/profile/', include('profiles.urls')),
     path('api/', include('JobApplication.urls')),
-    path('api/applications/', include('applications.urls')),  # Add this line
+    # path('api/applications/', include('applications.urls')),  # Add this line
     path('admin/', admin.site.urls),
     path('', frontend_index, name='frontend'),
 ]

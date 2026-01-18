@@ -3,13 +3,18 @@ from django.utils import timezone
 
 
 class Application(models.Model):
-
     profile = models.ForeignKey(
         "profiles.Profile",
         on_delete=models.CASCADE,
         related_name="applications",
         null=True,
         blank=True
+    )
+
+    job = models.ForeignKey(
+        "job_application.JobApplication",
+        on_delete=models.CASCADE,
+        related_name="applications"
     )
 
     class Stage(models.TextChoices):
@@ -20,33 +25,18 @@ class Application(models.Model):
         REJECTION = "rejection", "Rejection"
         WITHDRAWN = "withdrawn", "Withdrawn"
 
-    title = models.CharField(max_length=200)  # position title (e.g., "Software Engineer Intern")
-    company = models.CharField(max_length=200)
-
-    link = models.URLField(blank=True)
-    description = models.TextField(blank=True)
-
-    location = models.CharField(max_length=200, blank=True)
-
-    # "date" (posting date or when you found it)
-    date = models.DateField(null=True, blank=True)
-
-    date_applied = models.DateField(null=True, blank=True)
-
-    # duration in days (or store a string like "4 months"; days is easier to query)
-    duration_days = models.PositiveIntegerField(null=True, blank=True)
-
     stage = models.CharField(
         max_length=20,
         choices=Stage.choices,
         default=Stage.DRAFT,
     )
 
+    date_applied = models.DateField(null=True, blank=True)
+    duration_days = models.PositiveIntegerField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.company} — {self.title}"
 
 
 class ApplicationResponse(models.Model):
